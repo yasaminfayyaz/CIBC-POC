@@ -1,14 +1,16 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Button, View } from 'react-native';
+import { Alert, Button, View, Text, Modal } from 'react-native';
 import { getSyncDeviceInfo, getAsyncDeviceInfo } from '../services/GetDeviceInfo';
 import { PermissionsAndroid } from 'react-native';
 import WifiManager from 'react-native-wifi-reborn';
 
 const HomeScreen = ({ navigation }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [deviceInfo, setDeviceInfo] = useState();
-  const [wifiInfo, setWifiInfo] = useState();
+  // const [deviceInfo, setDeviceInfo] = useState({});
+  // const [wifiInfo, setWifiInfo] = useState([]);
+  const [requestedInfo, setRequestedInfo] = useState('');
   const [locationGranted, setLocationGranted] = useState('');
+  const [isLoadingDeviceInfo, setIsLoadingDeviceInfo] = useState(false);
   const [isLoadingWifiInfo, setIsLoadingWifiInfo] = useState(false);
 
   useEffect(() => {
@@ -29,6 +31,7 @@ const HomeScreen = ({ navigation }) => {
   }, [locationGranted]);
 
   const getDeviceInfo = useCallback(() => {
+    setIsLoadingDeviceInfo(true);
     const syncDeviceInfo = getSyncDeviceInfo();
     getAsyncDeviceInfo().then(result => {
       const asyncDeviceInfo = {
@@ -57,26 +60,42 @@ const HomeScreen = ({ navigation }) => {
         'headphonesConnected': result[22],
         'pinOrFingerprintSet': result[23]
       };
-      setDeviceInfo({ ...syncDeviceInfo, ...asyncDeviceInfo });
+      setRequestedInfo(JSON.stringify({ ...syncDeviceInfo, ...asyncDeviceInfo }));
+      setIsModalVisible(true);
     }).catch(error => {
       console.error(error);
+    }).finally(() => {
+      setIsLoadingDeviceInfo(false);
     });
-  }, [deviceInfo]);
+  }, [requestedInfo]);
 
   const getWifiInfo = useCallback(() => {
     setIsLoadingWifiInfo(true);
     WifiManager.reScanAndLoadWifiList().then(result => {
-      setWifiInfo(result);
+      setRequestedInfo(JSON.stringify(result));
     }).catch(error => {
       console.error(error);
     }).finally(() => {
       setIsLoadingWifiInfo(false);
+      setIsModalVisible(true);
     });
-  }, [wifiInfo]);
+  }, [requestedInfo]);
 
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Button title="Get Device Info" onPress={getDeviceInfo} />
+      <Modal
+        animationType='fade'
+        visible={isModalVisible}
+        onRequestClose={() => {
+          setIsModalVisible(false);
+        }}
+      >
+        <View style={{flex: 1, alignItems: 'center', alignContent: 'center'}}>
+          <Text>{requestedInfo}</Text>
+          <Button title="Close" onPress={() => setIsModalVisible(false)} />
+        </View>
+      </Modal>
+      <Button title="Get Device Info" onPress={getDeviceInfo} disabled={isLoadingDeviceInfo} />
       <Button title="Get WiFi Info" onPress={getWifiInfo} disabled={isLoadingWifiInfo} />
     </View>
   );
