@@ -1,48 +1,30 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Alert, Button, View, Text, Modal } from 'react-native';
+import { Button, View, Text, Modal } from 'react-native';
 import { getSyncDeviceInfo, getAsyncDeviceInfo } from '../services/GetDeviceInfo';
 import { PermissionsAndroid } from 'react-native';
 import WifiManager from 'react-native-wifi-reborn';
+import NetInfo from "@react-native-community/netinfo";
 
 const HomeScreen = ({ navigation }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
-  // const [deviceInfo, setDeviceInfo] = useState({});
-  // const [wifiInfo, setWifiInfo] = useState([]);
   const [requestedInfo, setRequestedInfo] = useState('');
   const [locationGranted, setLocationGranted] = useState('');
   const [isLoadingDeviceInfo, setIsLoadingDeviceInfo] = useState(false);
-  const [isLoadingWifiInfo, setIsLoadingWifiInfo] = useState(false);
+  const [isLoadingApInfo, setIsLoadingApInfo] = useState(false);
+  const [isLoadingDeviceNetworkInfo, setIsLoadingDeviceNetworkInfo] = useState(false);
 
   useEffect(() => {
     /**
      * required for reading list of APs
      */
-    PermissionsAndroid.request(
+    PermissionsAndroid.requestMultiple([
       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-      {
-        title: 'Location permission is required for WiFi connections',
-        message: 'This app needs location permission as this is required to scan for wifi networks.',
-        buttonNegative: 'DENY',
-        buttonPositive: 'ALLOW'
+    ]).then(result => {
+      if (result['android.permission.ACCESS_FINE_LOCATION'] === 'granted') {
+        setLocationGranted('ALLOW');
       }
-    ).then(result => {
-      setLocationGranted(result);
-    });
+    })
   }, [locationGranted]);
-
-  useEffect(() => {
-    PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.ACCESS_WIFI_STATE,
-      {
-        title: 'WiFi state is required',
-        message: 'This app needs WiFi permission',
-        buttonNegative: 'DENY',
-        buttonPositive: 'ALLOW'
-      }
-    ).then(result => {
-      console.log(result);
-    });
-  }, []);
 
   const getDeviceInfo = useCallback(() => {
     setIsLoadingDeviceInfo(true);
@@ -57,22 +39,21 @@ const HomeScreen = ({ navigation }) => {
         'firstInstallTime': result[5],
         'fontScale': result[6],
         'freeDiskStorage': result[7],
-        'ipAddress': result[8],
-        'installerPackageName': result[9],
-        'macAddress': result[10],
-        'manufacturer': result[11],
-        'powerState': result[12],
-        'totalDiskCapacity': result[13],
-        'totalMemory': result[14],
-        'uniqueId': result[15],
-        'usedMemory': result[16],
-        'userAgent': result[17],
-        'batteryCharging': result[18],
-        'emulator': result[19],
-        'landscape': result[20],
-        'locationEnabled': result[21],
-        'headphonesConnected': result[22],
-        'pinOrFingerprintSet': result[23]
+        'installerPackageName': result[8],
+        'macAddress': result[9],
+        'manufacturer': result[10],
+        'powerState': result[11],
+        'totalDiskCapacity': result[12],
+        'totalMemory': result[13],
+        'uniqueId': result[14],
+        'usedMemory': result[15],
+        'userAgent': result[16],
+        'batteryCharging': result[17],
+        'emulator': result[18],
+        'landscape': result[19],
+        'locationEnabled': result[20],
+        'headphonesConnected': result[21],
+        'pinOrFingerprintSet': result[22]
       };
       setRequestedInfo(JSON.stringify({ ...syncDeviceInfo, ...asyncDeviceInfo }));
       setIsModalVisible(true);
@@ -83,17 +64,27 @@ const HomeScreen = ({ navigation }) => {
     });
   }, [requestedInfo]);
 
-  const getWifiInfo = useCallback(() => {
-    setIsLoadingWifiInfo(true);
+  const getApInfo = useCallback(() => {
+    setIsLoadingApInfo(true);
     WifiManager.reScanAndLoadWifiList().then(result => {
       setRequestedInfo(JSON.stringify(result));
     }).catch(error => {
       console.error(error);
     }).finally(() => {
-      setIsLoadingWifiInfo(false);
+      setIsLoadingApInfo(false);
       setIsModalVisible(true);
     });
   }, [requestedInfo]);
+
+  const getDeviceNetworkInfo = useCallback(() => {
+    setIsLoadingDeviceNetworkInfo(true);
+    NetInfo.fetch().then(result => {
+      setRequestedInfo(JSON.stringify(result));
+    }).finally(() => {
+      setIsLoadingDeviceNetworkInfo(false);
+      setIsModalVisible(true);
+    });
+  }, []);
 
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -110,7 +101,8 @@ const HomeScreen = ({ navigation }) => {
         </View>
       </Modal>
       <Button title="Get Device Info" onPress={getDeviceInfo} disabled={isLoadingDeviceInfo} />
-      <Button title="Get AP Info" onPress={getWifiInfo} disabled={isLoadingWifiInfo} />
+      <Button title="Get AP Info" onPress={getApInfo} disabled={isLoadingApInfo} />
+      <Button title="Get Device Network Info" onPress={getDeviceNetworkInfo} disabled={isLoadingDeviceNetworkInfo} />
     </View>
   );
 };
