@@ -84,7 +84,7 @@ const HomeScreen = ({ navigation }) => {
       setIsLoadingDeviceNetworkInfo(false);
       setIsModalVisible(true);
     });
-  }, []);
+  }, [requestedInfo]);
 
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
