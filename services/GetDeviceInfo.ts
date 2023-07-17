@@ -13,11 +13,9 @@ import {
     getFirstInstallTime,
     getFontScale,
     getFreeDiskStorage,
-    getIpAddress,
     getInstallerPackageName,
     getMacAddress,
     getManufacturer,
-    getModel,
     getPowerState,
     getReadableVersion,
     getSystemName,
@@ -46,7 +44,6 @@ export const getSyncDeviceInfo = () => {
     const bundleId = getBundleId();
     const deviceId = getDeviceId();
     const deviceType = getDeviceType();
-    const model = getModel();
     const readableVersion = getReadableVersion();
     const systemName = getSystemName();
     const systemVersion = getSystemVersion();
@@ -62,7 +59,6 @@ export const getSyncDeviceInfo = () => {
         'bundleId': bundleId,
         'deviceId': deviceId,
         'deviceType': deviceType,
-        'model': model,
         'readableVersion': readableVersion,
         'systemName': systemName,
         'systemVersion': systemVersion,
@@ -82,7 +78,6 @@ export const getAsyncDeviceInfo = () => {
     const firstInstallTime = getFirstInstallTime();
     const fontScale = getFontScale();
     const freeDiskStorage = getFreeDiskStorage();
-    const ipAddress = getIpAddress();
     const installerPackageName = getInstallerPackageName();
     const macAddress = getMacAddress();
     const manufacturer = getManufacturer();
@@ -108,7 +103,6 @@ export const getAsyncDeviceInfo = () => {
         firstInstallTime,
         fontScale,
         freeDiskStorage,
-        ipAddress,
         installerPackageName,
         macAddress,
         manufacturer,

@@ -30,6 +30,20 @@ const HomeScreen = ({ navigation }) => {
     });
   }, [locationGranted]);
 
+  useEffect(() => {
+    PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.ACCESS_WIFI_STATE,
+      {
+        title: 'WiFi state is required',
+        message: 'This app needs WiFi permission',
+        buttonNegative: 'DENY',
+        buttonPositive: 'ALLOW'
+      }
+    ).then(result => {
+      console.log(result);
+    });
+  }, []);
+
   const getDeviceInfo = useCallback(() => {
     setIsLoadingDeviceInfo(true);
     const syncDeviceInfo = getSyncDeviceInfo();
@@ -90,13 +104,13 @@ const HomeScreen = ({ navigation }) => {
           setIsModalVisible(false);
         }}
       >
-        <View style={{flex: 1, alignItems: 'center', alignContent: 'center'}}>
+        <View style={{ flex: 1, alignItems: 'center', alignContent: 'center' }}>
           <Text>{requestedInfo}</Text>
           <Button title="Close" onPress={() => setIsModalVisible(false)} />
         </View>
       </Modal>
       <Button title="Get Device Info" onPress={getDeviceInfo} disabled={isLoadingDeviceInfo} />
-      <Button title="Get WiFi Info" onPress={getWifiInfo} disabled={isLoadingWifiInfo} />
+      <Button title="Get AP Info" onPress={getWifiInfo} disabled={isLoadingWifiInfo} />
     </View>
   );
 };
