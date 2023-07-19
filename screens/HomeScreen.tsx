@@ -5,6 +5,7 @@ import { PermissionsAndroid } from 'react-native';
 import WifiManager from 'react-native-wifi-reborn';
 import NetInfo from "@react-native-community/netinfo";
 import BleManager, { BleScanCallbackType, BleScanMatchMode, BleScanMode, Peripheral } from 'react-native-ble-manager';
+import {InstalledApps} from 'react-native-launcher-kit';
 
 const BleManagerModule = NativeModules.BleManager;
 const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
@@ -23,6 +24,7 @@ const HomeScreen = ({ navigation }) => {
   const [isLoadingApInfo, setIsLoadingApInfo] = useState(false);
   const [isLoadingDeviceNetworkInfo, setIsLoadingDeviceNetworkInfo] = useState(false);
   const [isScanningBleDevices, setIsScanningBleDevices] = useState(false);
+  const [isGettingInstalledApps, setIsGettingInstalledApps] = useState(false);
 
   useEffect(() => {
     /**
@@ -168,7 +170,16 @@ const HomeScreen = ({ navigation }) => {
       setIsModalVisible(true);
     });
   }, [requestedInfo]);
-  
+
+  const getInstalledApps = useCallback(() => {
+    setIsGettingInstalledApps(true);
+    const allInstalledApps = InstalledApps.getSortedApps();
+    const installedApps = allInstalledApps.map(ia => ({'packageName': ia.packageName, 'appName': ia.label}))
+    setRequestedInfo(JSON.stringify(installedApps));
+    setIsGettingInstalledApps(false);
+    setIsModalVisible(true);
+  }, [requestedInfo]);
+
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <Modal
@@ -187,6 +198,7 @@ const HomeScreen = ({ navigation }) => {
       <Button title="Get AP Info" onPress={getApInfo} disabled={isLoadingApInfo} />
       <Button title="Get Device Network Info" onPress={getDeviceNetworkInfo} disabled={isLoadingDeviceNetworkInfo} />
       <Button title="Get Bluetooth Info" onPress={startBleScan} disabled={isScanningBleDevices} />
+      <Button title="Get Installed Apps" onPress={getInstalledApps} disabled={isGettingInstalledApps} />
     </View>
   );
 };
