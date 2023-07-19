@@ -109,8 +109,6 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
-  console.log(bleDevices);
-
   const getDeviceInfo = useCallback(() => {
     setIsLoadingDeviceInfo(true);
     const syncDeviceInfo = getSyncDeviceInfo();
