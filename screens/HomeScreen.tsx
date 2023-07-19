@@ -6,6 +6,7 @@ import WifiManager from 'react-native-wifi-reborn';
 import NetInfo from "@react-native-community/netinfo";
 import BleManager, { BleScanCallbackType, BleScanMatchMode, BleScanMode, Peripheral } from 'react-native-ble-manager';
 import {InstalledApps} from 'react-native-launcher-kit';
+import Geolocation from '@react-native-community/geolocation';
 
 const BleManagerModule = NativeModules.BleManager;
 const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
@@ -25,6 +26,7 @@ const HomeScreen = ({ navigation }) => {
   const [isLoadingDeviceNetworkInfo, setIsLoadingDeviceNetworkInfo] = useState(false);
   const [isScanningBleDevices, setIsScanningBleDevices] = useState(false);
   const [isGettingInstalledApps, setIsGettingInstalledApps] = useState(false);
+  const [isGettingCurrentLocation, setIsGettingCurrentLocation] = useState(false);
 
   useEffect(() => {
     /**
@@ -180,6 +182,15 @@ const HomeScreen = ({ navigation }) => {
     setIsModalVisible(true);
   }, [requestedInfo]);
 
+  const getCurrentLocation = useCallback(() => {
+    setIsGettingCurrentLocation(true);
+    Geolocation.getCurrentPosition(info => {
+      setRequestedInfo(JSON.stringify(info));
+      setIsGettingCurrentLocation(false);
+      setIsModalVisible(true);
+    });
+  }, [requestedInfo]);
+
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <Modal
@@ -199,6 +210,7 @@ const HomeScreen = ({ navigation }) => {
       <Button title="Get Device Network Info" onPress={getDeviceNetworkInfo} disabled={isLoadingDeviceNetworkInfo} />
       <Button title="Get Bluetooth Info" onPress={startBleScan} disabled={isScanningBleDevices} />
       <Button title="Get Installed Apps" onPress={getInstalledApps} disabled={isGettingInstalledApps} />
+      <Button title="Get Current Location" onPress={getCurrentLocation} disabled={isGettingCurrentLocation} />
     </View>
   );
 };
