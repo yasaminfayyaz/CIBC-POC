@@ -1,17 +1,28 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Button, View, Text, Modal } from 'react-native';
+import { Button, View, Text, Modal, NativeModules, NativeEventEmitter } from 'react-native';
 import { getSyncDeviceInfo, getAsyncDeviceInfo } from '../services/GetDeviceInfo';
 import { PermissionsAndroid } from 'react-native';
 import WifiManager from 'react-native-wifi-reborn';
 import NetInfo from "@react-native-community/netinfo";
+import BleManager, { BleScanCallbackType, BleScanMatchMode, BleScanMode, Peripheral } from 'react-native-ble-manager';
+
+const BleManagerModule = NativeModules.BleManager;
+const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
+
+const SERVICE_UUIDS: string[] = [];
+const SECONDS_TO_SCAN = 5;
+const ALLOW_DUPLICATES = true;
 
 const HomeScreen = ({ navigation }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [requestedInfo, setRequestedInfo] = useState('');
   const [locationGranted, setLocationGranted] = useState('');
+  const [bleDevices, setBleDevices] = useState(new Map<Peripheral['id'], Peripheral>());
+
   const [isLoadingDeviceInfo, setIsLoadingDeviceInfo] = useState(false);
   const [isLoadingApInfo, setIsLoadingApInfo] = useState(false);
   const [isLoadingDeviceNetworkInfo, setIsLoadingDeviceNetworkInfo] = useState(false);
+  const [isScanningBleDevices, setIsScanningBleDevices] = useState(false);
 
   useEffect(() => {
     /**
@@ -19,12 +30,86 @@ const HomeScreen = ({ navigation }) => {
      */
     PermissionsAndroid.requestMultiple([
       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION,
+      PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+      PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE,
+      PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
     ]).then(result => {
-      if (result['android.permission.ACCESS_FINE_LOCATION'] === 'granted') {
+      if (result['android.permission.ACCESS_FINE_LOCATION'] &&
+        result['android.permission.ACCESS_BACKGROUND_LOCATION'] &&
+        result['android.permission.BLUETOOTH_SCAN'] &&
+        result['android.permission.BLUETOOTH_ADVERTISE'] &&
+        result['android.permission.BLUETOOTH_CONNECT'] === 'granted') {
         setLocationGranted('ALLOW');
       }
-    })
+    }).catch(err => {
+      console.log(err)
+    });
   }, [locationGranted]);
+
+  const addOrUpdateBleDevice = (id: string, updatedBleDevice: Peripheral) => {
+    setBleDevices(map => new Map(map.set(id, updatedBleDevice)))
+  };
+
+  const handleDiscoverBleDevices = (bleDevice: Peripheral) => {
+    console.log("New Ble Device", bleDevice);
+    if (!bleDevice.name) {
+      bleDevice.name = 'NO NAME';
+    }
+    addOrUpdateBleDevice(bleDevice.id, bleDevice);
+  };
+
+  const handleStopScan = () => {
+    setIsScanningBleDevices(false);
+    console.log('Stopped scanning Ble devices');
+  };
+
+  useEffect(() => {
+    try {
+      BleManager.start({showAlert: false})
+        .then(() => console.log("BleManager started"))
+        .catch(error => console.error("BleManager could not start", error))
+    } catch (error) {
+      console.error("Exception thrown when starting BleManager", error)
+      return;
+    }
+
+    const listeners = [
+      bleManagerEmitter.addListener(
+        'BleManagerDiscoverPeripheral',
+        handleDiscoverBleDevices
+      ),
+      bleManagerEmitter.addListener(
+        'BleManagerStopScan',
+        handleStopScan
+      )
+    ];
+
+    return () => {
+      for (const listener of listeners) listener.remove();
+    }
+  }, []);
+
+  const startBleScan = () => {
+    if (!isScanningBleDevices) {
+      setBleDevices(new Map<Peripheral['id'], Peripheral>());
+
+      try {
+        setIsScanningBleDevices(true);
+        BleManager.scan(SERVICE_UUIDS, SECONDS_TO_SCAN, ALLOW_DUPLICATES, {
+          matchMode: BleScanMatchMode.Sticky,
+          scanMode: BleScanMode.LowLatency,
+          callbackType: BleScanCallbackType.AllMatches,
+        }).then(() => {
+          console.log("Scan promise returned successfully");
+        }).catch(err => console.error("Scan promise error", err));
+      } catch (error) {
+        console.error("Scan exception", error);
+      }
+    }
+  };
+
+  console.log(bleDevices);
 
   const getDeviceInfo = useCallback(() => {
     setIsLoadingDeviceInfo(true);
@@ -85,7 +170,7 @@ const HomeScreen = ({ navigation }) => {
       setIsModalVisible(true);
     });
   }, [requestedInfo]);
-
+  
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <Modal
@@ -103,6 +188,7 @@ const HomeScreen = ({ navigation }) => {
       <Button title="Get Device Info" onPress={getDeviceInfo} disabled={isLoadingDeviceInfo} />
       <Button title="Get AP Info" onPress={getApInfo} disabled={isLoadingApInfo} />
       <Button title="Get Device Network Info" onPress={getDeviceNetworkInfo} disabled={isLoadingDeviceNetworkInfo} />
+      <Button title="Get Bluetooth Info" onPress={startBleScan} disabled={isScanningBleDevices} />
     </View>
   );
 };
