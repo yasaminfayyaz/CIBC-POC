@@ -1,7 +1,0 @@
-pymysql
-faker 
-random
-uuid
-sys
-datetime
-numpy
