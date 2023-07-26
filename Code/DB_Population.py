@@ -1,6 +1,7 @@
 from DB_Operations import Database
 from faker import Faker
 import random
+import bcrypt
 from datetime import date
 fake = Faker()
 
@@ -30,7 +31,11 @@ def employeeData(db, numEmployees):
         id = id + 1
         query = "Insert INTO Password (passwordHash, employeeID) \
                                 VALUES (%s, %s)"
-        vals = (dob, employeeID)
+        salt = bcrypt.gensalt()
+        dob = dob.strftime("%Y-%m-%d")
+        defaultPass =  bcrypt.hashpw(dob.encode('utf-8'), salt)
+
+        vals = (defaultPass, employeeID)
         db.insert(query, vals)
 
 
