@@ -28,6 +28,11 @@ def employeeData(db, numEmployees):
         vals = (employeeID, firstName, lastName, department, secClearance, primaryBranchID, dob)
         db.insert(query, vals)
         id = id + 1
+        query = "Insert INTO Password (passwordHash, employeeID) \
+                                VALUES (%s, %s)"
+        vals = (dob, employeeID)
+        db.insert(query, vals)
+
 
 def resourceData(db, numResources):
     resourceTypes = ["Records", "Archives", "Documents", "Artifacts", "Information Assets", "Intellectual Property", "Research Materials"]
@@ -45,10 +50,8 @@ def resourceData(db, numResources):
         id = id + 1
 
 if __name__ == '__main__':
-    db_resource = Database("Resources")
+    db_employee = Database("Employees")
     employeeData(db_employee, 100)
-    resourceData(db_resource, 100)
     db_employee.con.close()
-    db_resource.con.close()
 
 
