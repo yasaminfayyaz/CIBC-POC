@@ -100,6 +100,38 @@ def set_password():
         return jsonify(message="Invalid employee ID", code=1002), 401
     db.con.close()
 
+@app.route("/get_resources", methods=["GET"])
+@jwt_required()
+def get_resources():
+    """
+    This function handles the retrieval of resources that the employee can see (not necessarily access) based on their initial security clearance.
+    The function requires the employee's JWT token in the 'Authorization' header of the request.
+
+    The function retrieves the employee's initial security clearance from the Employee database, then retrieves all resources from the Resource database that have a security level that is the same or lower than the employee's initial security clearance.
+
+    The function returns a JSON response with a list of resources. Each resource is represented as a dictionary with 'resourceID' and 'resourceName'.
+    """
+    employeeID = get_jwt_identity()
+
+    db_employee = Database("Employees")
+    result_employee = db_employee.query("SELECT initSecClearance FROM Employee WHERE employeeID=%s", (employeeID,))
+    initSecClearance = result_employee[0]["initSecClearance"]
+
+    # map security levels to numerical values
+    sec_levels = {"Unclassified": 0, "Restricted": 1, "Confidential": 2, "Secret": 3, "Top Secret": 4}
+    initSecClearance_value = sec_levels[initSecClearance]
+
+    db_resource = Database("Resources")
+    result_resource = db_resource.query("SELECT resourceID, resourceName, secLevel FROM Resource")
+
+    # create a list of resources that the employee can see
+    resources = [{"resourceID": resource["resourceID"], "resourceName": resource["resourceName"]} for resource in result_resource if sec_levels[resource["secLevel"]] <= initSecClearance_value]
+
+    db_employee.con.close()
+    db_resource.con.close()
+
+    return jsonify(resources=resources), 200
+
 
 if __name__ == "__main__":
     app.run(debug=True)
