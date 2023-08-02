@@ -8,13 +8,13 @@ def indoorLocation(BSSIDs, RSSIs, employeeID):
         AP2_RSSI_User = abs(RSSIs[1])
         AP3_RSSI_User = abs(RSSIs[2])
 
-        db = Database("wifiReferenceInfo")
-        locationIDs = [locationID["locationID"] for locationID in db.query("SELECT locationID FROM Location")]
+        db_location = Database("LocationReference")
+        locationIDs = [locationID["locationID"] for locationID in db_location.query("SELECT locationID FROM Location")]
         results = {}
         for locationID in locationIDs:
-            RSSI_Ref1 = db.query("SELECT RSSI FROM Location_RSSI WHERE BSSID = %s AND locationID = %s", (BSSID1, locationID))
-            RSSI_Ref2 = db.query("SELECT RSSI FROM Location_RSSI WHERE BSSID = %s AND locationID = %s", (BSSID2, locationID))
-            RSSI_Ref3 = db.query("SELECT RSSI FROM Location_RSSI WHERE BSSID = %s AND locationID = %s", (BSSID3, locationID))
+            RSSI_Ref1 = db_location.query("SELECT RSSI FROM Location_RSSI WHERE BSSID = %s AND locationID = %s", (BSSID1, locationID))
+            RSSI_Ref2 = db_location.query("SELECT RSSI FROM Location_RSSI WHERE BSSID = %s AND locationID = %s", (BSSID2, locationID))
+            RSSI_Ref3 = db_location.query("SELECT RSSI FROM Location_RSSI WHERE BSSID = %s AND locationID = %s", (BSSID3, locationID))
             if RSSI_Ref1 and RSSI_Ref2 and RSSI_Ref3:
                 refPoint = np.array([int(RSSI_Ref1[0]["RSSI"]), int(RSSI_Ref2[0]["RSSI"]), int(RSSI_Ref3[0]["RSSI"])])
                 livePoint = np.array((AP1_RSSI_User, AP2_RSSI_User, AP3_RSSI_User))
@@ -22,34 +22,26 @@ def indoorLocation(BSSIDs, RSSIs, employeeID):
                 results[locationID] = dist
 
         minDistID = min(results, key=results.get)
-        getLocation = db.query("SELECT locationName FROM Location WHERE locationID = %s", (minDistID,))
+
+
+        getLocation = db_location.query("SELECT locationName FROM Location WHERE locationID = %s", (minDistID,))
 
         #add locationID of user's location to DB
-        db.query("INSERT INTO EmployeeLocation (employeeID, locationID) VALUES (%s, %s) ON DUPLICATE KEY UPDATE locationID = %s", (employeeID, minDistID, minDistID))
+        db_employee = Database("Employees")
+        db_employee.query("INSERT INTO EmployeeLocation (employeeID, locationID) VALUES (%s, %s) ON DUPLICATE KEY UPDATE locationID = %s", (employeeID, minDistID, minDistID))
 
         userLocation = getLocation[0]['locationName'] if getLocation else None
         return userLocation
 
     except Exception as e:
         print(f"An error occurred: {e}")
-        return -1  # Return a custom error code
+        return False  # Return a custom error code
 
     finally:
-        db.con.close()
+        db_location.con.close()
+        db_employee.con.close()
 
 
-def whoIsAround(locationID):
-    try:
-        db = Database("Employees")
-        employeeIDs = db.query("SELECT employeeID FROM EmployeeLocation WHERE locationID = %s AND timestamp > NOW() - INTERVAL 15 MINUTE", (locationID,))
-        return [employee["employeeID"] for employee in employeeIDs]
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return []
-
-    finally:
-        db.con.close()
 
 
 

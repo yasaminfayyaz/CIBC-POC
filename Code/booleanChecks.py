@@ -6,31 +6,47 @@ def isAtPrimaryBranch(employeeID, currentLat, currentLong):
     try:
         db = Database("Employees")
         radius = 0.1
-        primaryBranchID = db.query("SELECT primaryBranchID FROM Employee WHERE employeeID = %s", (employeeID,))[0]['primaryBranchID']
+        primaryBranchID = db.query("SELECT primaryBranchID FROM Employee WHERE employeeID = %s", (employeeID,))[0]["primaryBranchID"]
         branchLocation = db.query("SELECT latitude, longitude FROM Branch WHERE branchID = %s", (primaryBranchID,))[0]
-        branchLat = branchLocation['latitude']
-        branchLong = branchLocation['longitude']
+        branchLat = branchLocation["latitude"]
+        branchLong = branchLocation["longitude"]
         # Calculate the distance between the current location and the branch location
         distance = geodesic((currentLat, currentLong), (branchLat, branchLong)).kilometers
         # Compare the distance with the radius
         return distance <= radius
     except Exception as e:
         print(f"An error occurred: {e}")
-        return False
+        return -1
     finally:
         db.con.close()
+
+def isAtTrustedLocation(employeeID):
+    try:
+        db_employee = Database("Employees")
+        locationID = db_employee.query("SELECT locationID FROM EmployeeLocation WHERE employeeID = %s", (employeeID,))[0]["locationID"]
+
+        db_location = Database("LocationReference")
+        isTrusted = db_location.query("SELECT isTrusted FROM Location WHERE locationID = %s", (locationID,))[0]["isTrusted"]
+        return bool(isTrusted)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return -1
+    finally:
+        db_employee.con.close()
+        db_location.con.close()
+
 
 def isRegisteredDevice(employeeID, currentDeviceID):
     try:
         db = Database("Employees")
         registeredDeviceID = db.query("SELECT deviceID FROM Device WHERE employeeID = %s", (employeeID,))
         if registeredDeviceID:
-            return registeredDeviceID[0]['deviceID'] == currentDeviceID
+            return registeredDeviceID[0]["deviceID"] == currentDeviceID
         else:
             return False
     except Exception as e:
         print(f"An error occurred: {e}")
-        return False
+        return -1
     finally:
         db.con.close()
 
@@ -39,7 +55,7 @@ def isWorkHours():
     now = datetime.now()
 
     # Check if today is a weekday (0 = Monday, 6 = Sunday)
-    if now.weekday() >= 5:  # If it's Saturday or Sunday
+    if now.weekday() >= 5:  # If it"s Saturday or Sunday
         return False
 
     # Define work hours start and end
@@ -72,10 +88,36 @@ def isClearanceSufficient(employeeID):
 
     except Exception as e:
         print(f"An error occurred: {e}")
-        return False
+        return -1
 
 
-if __name__ == '__main__':
+def areInstalledAppsSafe(apps_on_phone):
+    try:
+        db = Database("SecurityRestrictions")
+
+        # Iterate through the apps on the phone
+        for app in apps_on_phone:
+            package_name = app["packageName"]
+
+            # Query the database to see if the package name is in the blacklist
+            result = db.query("SELECT * FROM BlacklistedApps WHERE appID = %s", (package_name,))
+
+            # If the result is not empty, the app is blacklisted, so the installed apps are not safe
+            if result:
+                return False
+
+        # If none of the apps are blacklisted, the installed apps are safe
+        return True
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return -1
+
+    finally:
+        db.con.close()
+
+
+if __name__ == "__main__":
 
     print(f"Employee is currently at primary branch: {isAtPrimaryBranch(100000000, 43.9478, -78.8991)}")
     print(f"Employee is accessing resource during work hours: {isWorkHours()}")
