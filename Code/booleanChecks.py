@@ -52,6 +52,29 @@ def isWorkHours():
     else:
         return False
 
+def isClearanceSufficient(employeeID):
+    try:
+        db = Database("Employees")
+        clearanceRanking = {"Unclassified": 0, "Restricted": 1, "Confidential": 2, "Secret": 3, "Top Secret": 4}
+
+        # Get the security clearance of the given employee
+        employeeSecLevel = db.query("SELECT initSecClearance FROM Employee WHERE employeeID = %s", (employeeID,))[0]["initSecClearance"]
+        employeeSecLevel_value = clearanceRanking[employeeSecLevel]
+
+        # Get the location of the given employee
+        employeeLocation = db.query("SELECT locationID FROM EmployeeLocation WHERE employeeID = %s", (employeeID,))[0]["locationID"]
+
+        # Get the security clearances of all other employees in the same location
+        otherEmployees = db.query("SELECT E.initSecClearance FROM Employee E JOIN EmployeeLocation EL ON E.employeeID = EL.employeeID WHERE EL.locationID = %s", (employeeLocation,))
+
+        # Check if all other employees in the same location have the same or higher security clearance
+        return all(clearanceRanking[employee["initSecClearance"]] >= employeeSecLevel_value for employee in otherEmployees)
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return False
+
+
 if __name__ == '__main__':
 
     print(f"Employee is currently at primary branch: {isAtPrimaryBranch(100000000, 43.9478, -78.8991)}")

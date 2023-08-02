@@ -55,7 +55,7 @@ def resourceData(db, numResources):
         id = id + 1
 
 if __name__ == '__main__':
-    db_employee = Database("Employees")
+    db_employee = Database("AP_Info")
     employeeData(db_employee, 100)
     db_employee.con.close()
 

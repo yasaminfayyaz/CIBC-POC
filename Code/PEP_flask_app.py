@@ -1,8 +1,9 @@
 from flask import Flask, request, jsonify
 import bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-
 from DB_Operations import Database
+from utils import *
+from booleanChecks import *
 
 app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = "cibcproject"
@@ -131,6 +132,59 @@ def get_resources():
     db_resource.con.close()
 
     return jsonify(resources=resources), 200
+
+
+@app.route('/update_location', methods=['POST'])
+@jwt_required
+def update_location():
+    """
+    This function updates the location of an employee based on the RSSI values received from the client.
+
+    The client should send a POST request with a JSON body containing two fields:
+    - 'BSSIDs': a list of BSSID strings corresponding to the 3 Wi-Fi access points.
+    - 'RSSIs': a list of RSSI values corresponding to the BSSIDs. The RSSI values should be in the same order as the BSSIDs.
+
+    The client should also include the JWT token in the 'Authorization' header of the request.
+
+    Example request body:
+    {
+        "BSSIDs": ["00:0a:95:9d:68:16", "00:0a:95:9d:68:17", "00:0a:95:9d:68:18"],
+        "RSSIs": [-50, -60, -70]
+    }
+
+    The function will update the location of the employee in the database based on the RSSI values and return a JSON response with a message "Location updated".
+
+    If an error occurs, the function will return a JSON response with an error message.
+    """
+    BSSIDs = request.json.get('BSSIDs', None)
+    RSSIs = request.json.get('RSSIs', None)
+    employeeID = get_jwt_identity()  # Get the employee id from the JWT
+    indoorLocation(BSSIDs, RSSIs, employeeID)
+    return jsonify({"msg": "Location updated"}), 200
+
+
+
+@app.route('/get_bssids', methods=['GET'])
+def get_bssids():
+    """
+    This endpoint retrieves all BSSIDs associated with APs of interest from the database and returns them in a JSON format.
+
+    The returned JSON object is an array of dictionaries, where each dictionary represents a row from the AP table. Each dictionary has a single key-value pair, where the key is 'BSSID' and the value is the BSSID of an access point.
+
+    Example response:
+    [
+        {"BSSID": "00:0a:95:9d:68:16"},
+        {"BSSID": "00:0a:95:9d:68:17"},
+        {"BSSID": "00:0a:95:9d:68:18"}
+    ]
+
+    """
+    db = Database("AP_Info")
+    bssids = db.query("SELECT BSSID FROM AP")
+    db.con.close()
+    return jsonify(bssids)
+
+
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 from DB_Operations import Database
 import numpy as np
 
-def indoorLocation(BSSIDs, RSSIs):
+def indoorLocation(BSSIDs, RSSIs, employeeID):
     try:
         BSSID1, BSSID2, BSSID3 = BSSIDs
         AP1_RSSI_User = abs(RSSIs[0])
@@ -23,6 +23,10 @@ def indoorLocation(BSSIDs, RSSIs):
 
         minDistID = min(results, key=results.get)
         getLocation = db.query("SELECT locationName FROM Location WHERE locationID = %s", (minDistID,))
+
+        #add locationID of user's location to DB
+        db.query("INSERT INTO EmployeeLocation (employeeID, locationID) VALUES (%s, %s) ON DUPLICATE KEY UPDATE locationID = %s", (employeeID, minDistID, minDistID))
+
         userLocation = getLocation[0]['locationName'] if getLocation else None
         return userLocation
 
@@ -34,8 +38,18 @@ def indoorLocation(BSSIDs, RSSIs):
         db.con.close()
 
 
+def whoIsAround(locationID):
+    try:
+        db = Database("Employees")
+        employeeIDs = db.query("SELECT employeeID FROM EmployeeLocation WHERE locationID = %s AND timestamp > NOW() - INTERVAL 15 MINUTE", (locationID,))
+        return [employee["employeeID"] for employee in employeeIDs]
 
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return []
 
+    finally:
+        db.con.close()
 
 
 
