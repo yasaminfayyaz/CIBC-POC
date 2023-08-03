@@ -35,7 +35,7 @@ def indoorLocation(BSSIDs, RSSIs, employeeID):
 
     except Exception as e:
         print(f"An error occurred: {e}")
-        return False  # Return a custom error code
+        return False
 
     finally:
         db_location.con.close()
@@ -44,14 +44,5 @@ def indoorLocation(BSSIDs, RSSIs, employeeID):
 
 
 
-
-
-
-if __name__ == '__main__':
-    BSSIDs = ['34:FC:B9:7C:E3:80', 'E0:CB:BC:96:3D:0C', 'A8:5B:F7:29:7B:60']
-    RSSIs = [-42, -83, -43]
-
-    location = indoorLocation(BSSIDs, RSSIs)
-    print(f"Location with original order of BSSIDs and RSSIs: {location}")
 
 

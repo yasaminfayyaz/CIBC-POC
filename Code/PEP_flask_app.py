@@ -2,8 +2,7 @@ from flask import Flask, request, jsonify
 import bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from DB_Operations import Database
-from utils import *
-from booleanChecks import *
+from utils import indoorLocation
 
 app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = "cibcproject"
@@ -179,7 +178,7 @@ def get_bssids():
     ]
 
     """
-    db = Database("AP_Info")
+    db = Database("LocationReference")
     bssids = db.query("SELECT BSSID FROM AP")
     db.con.close()
     return jsonify(bssids)

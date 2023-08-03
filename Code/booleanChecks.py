@@ -117,9 +117,6 @@ def areInstalledAppsSafe(apps_on_phone):
         db.con.close()
 
 
-if __name__ == "__main__":
 
-    print(f"Employee is currently at primary branch: {isAtPrimaryBranch(100000000, 43.9478, -78.8991)}")
-    print(f"Employee is accessing resource during work hours: {isWorkHours()}")
 
 
