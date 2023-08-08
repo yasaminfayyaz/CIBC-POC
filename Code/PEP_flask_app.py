@@ -1,19 +1,43 @@
 from flask import Flask, request, jsonify
 import bcrypt
+import sys
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from DB_Operations import Database
 from utils import indoorLocation
+
 
 app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = "cibcproject"
 jwt = JWTManager(app)
 
 
+
+
 @app.route("/", methods=["POST"])
+@jwt_required()
+
+def access_request():
+    from pyxacml_sdk.core import sdk
+    from pyxacml_sdk.model.attribute import Attribute
+    from pyxacml_sdk.model.attribute_ids import Attribute_ID
+    from pyxacml_sdk.model.categories import Category_ID
+    from pyxacml_sdk.model.datatypes import Datatype
+
+    data = request.get_json()
+
+    sdk = sdk.Sdk(
+            # Path to our configuration file
+            "config.yml",
+            # Domain ID
+            "oUVpvyqyEe6P-AZjTGYSFQ")
+
+    
+
+
+
 def access_request():
     data = request.json
     return jsonify({"message": "Request received and processed"})
-
 
 
 @app.route("/login", methods=["POST"])
@@ -50,16 +74,15 @@ def login():
         # if login count is 0, check if password is the same as default (DOB)
         if login_count == 0:
             if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
-                return jsonify(message="Redirect to create new password", code=1000), 200
+                access_token = create_access_token(identity=stored_employeeID)
+                return jsonify(message="Redirect to create new password", code=1000, token=access_token), 200
             else:
                 return jsonify(message="Invalid password", code=1001), 401
 
         # if login count is not 0, check password against stored hash
         elif bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
-            # if the login is successful, create a JWT token and increment login count
-            access_token = create_access_token(identity=stored_employeeID)
             db.query("UPDATE Password SET loginCount = loginCount + 1 WHERE employeeID=%s", (employeeID,))
-            return jsonify(message="Login successful", code=0, token=access_token), 200
+            return jsonify(message="Login successful", code=0, ), 200
         else:
             return jsonify(message="Invalid password", code=1001), 401
     else:
