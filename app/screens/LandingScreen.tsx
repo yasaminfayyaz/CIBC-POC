@@ -1,51 +1,90 @@
 import * as React from 'react';
-import { useState, useCallback } from 'react';
-import { Button, Text, TextInput, View } from 'react-native';
+import { useState, useCallback, useEffect } from 'react';
+import { Button, Text, TextInput, View, Alert, useWindowDimensions } from 'react-native';
+import { getBssids } from '../services/GetBssids';
 import { applicationStore } from '../store/applicationStore';
+import { BSSID } from '../types/BSSID';
+import { login } from '../services/User';
+import { Loader } from '../components/Loader/Loader';
 
 const LandingScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
-  const [passwd, setPasswd] = useState('');
+  const [password, setPassword] = useState('');
+  const [isDoingSignIn, setIsDoingSignIn] = useState(false);
+  const [desiredBssids, setDesiredBssids] = useState<Array<BSSID>>();
 
-  const doSignIn = useCallback(() => {
-    /**
-     * if sign in is successful, update application store's userToken
-     */
+  const { width, height } = useWindowDimensions();
 
-    if (username && passwd) {
-      applicationStore.update(applicationState => {
-        applicationState.userToken = "myApplicationToken";
+  useEffect(() => {
+    if (!desiredBssids) {
+      getBssids().then(resp => {
+        setDesiredBssids(resp);
       });
-    } else {
-      console.error("Type your username and password");
     }
-  }, [username, passwd])
+  }, []);
+
+  useEffect(() => {
+    if (desiredBssids) {
+      applicationStore.update(applicationState => {
+        applicationState.desiredBSSIDs = desiredBssids;
+      });
+    }
+  }, [desiredBssids]);
+
+  const navigateToUpdatePassword = () => navigation.push("NewPasswordScreen", { username: username });
+
+  const doSignIn = useCallback(async () => {
+    if (username && password) {
+      setIsDoingSignIn(true);
+      const response = await login(username, password);
+      setIsDoingSignIn(false);
+
+      if (response.code === 1001 || response.code === 1002) {
+        Alert.alert('Sign in error', 'Incorrect username or password', [{ text: 'Ok', style: 'default' }]);
+      } else if (response.code === 1000) {
+        Alert.alert('First login detected', 'Please set a new password', [{ text: 'Ok', style: 'default', onPress: navigateToUpdatePassword }])
+      } else if (response.code === 0) {
+        applicationStore.update(applicationState => {
+          applicationState.userToken = "myApplicationToken";
+        });
+      }
+
+    } else {
+      Alert.alert('Sign in error', 'Please enter username and password', [{ text: 'Ok', style: 'default' }]);
+    }
+  }, [username, password])
 
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>CIBC POC</Text>
-      <TextInput
-        onChangeText={setUsername}
-        value={username}
-        placeholder="Type username"
-        autoCapitalize='none'
-        autoComplete='off'
-        autoCorrect={false}
-      />
-      <TextInput
-        onChangeText={setPasswd}
-        value={passwd}
-        placeholder='Type password'
-        autoCapitalize='none'
-        autoComplete='off'
-        autoCorrect={false}
-        secureTextEntry={true}
-      />
-      <Button
-        title="Submit"
-        onPress={doSignIn}
-      />
-    </View>
+    <>
+      <Loader visible={isDoingSignIn} />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', opacity: isDoingSignIn ? 0.25 : 1.00 }}>
+        <Text>CIBC POC</Text>
+        <TextInput
+          onChangeText={setUsername}
+          value={username}
+          placeholder="Type username"
+          autoCapitalize='none'
+          autoComplete='off'
+          autoCorrect={false}
+          style={{ borderColor: 'black', borderWidth: 0.5, width: width * 40 / 100, textAlign: 'center', height: height * 5 / 100, marginVertical: 5 }}
+        />
+        <TextInput
+          onChangeText={setPassword}
+          value={password}
+          placeholder='Type password'
+          autoCapitalize='none'
+          autoComplete='off'
+          autoCorrect={false}
+          secureTextEntry={true}
+          style={{ borderColor: 'black', borderWidth: 0.5, width: width * 40 / 100, textAlign: 'center', height: height * 5 / 100, marginVertical: 5 }}
+        />
+        <Button
+          title="Submit"
+          onPress={doSignIn}
+          disabled={isDoingSignIn}
+        />
+      </View>
+    </>
   );
 };
 

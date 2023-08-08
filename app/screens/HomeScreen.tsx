@@ -1,18 +1,23 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Button, View, Text, Modal, NativeModules, NativeEventEmitter } from 'react-native';
+import { Button, View, Text, Modal, NativeModules, NativeEventEmitter, SafeAreaView, FlatList, StyleSheet, Pressable, Alert } from 'react-native';
 import { getSyncDeviceInfo, getAsyncDeviceInfo } from '../services/GetDeviceInfo';
 import { PermissionsAndroid } from 'react-native';
 import WifiManager from 'react-native-wifi-reborn';
 import NetInfo from "@react-native-community/netinfo";
 import BleManager, { BleScanCallbackType, BleScanMatchMode, BleScanMode, Peripheral } from 'react-native-ble-manager';
-import {InstalledApps} from 'react-native-launcher-kit';
+import { InstalledApps } from 'react-native-launcher-kit';
 import Geolocation from '@react-native-community/geolocation';
+import { getBssids } from '../services/GetBssids';
+
+import { DocumentListMock } from '../mocks/Documents';
+import { Document } from '../types/Document';
+import { applicationStore } from '../store/applicationStore';
 
 const BleManagerModule = NativeModules.BleManager;
 const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
 
 const SERVICE_UUIDS: string[] = [];
-const SECONDS_TO_SCAN = 5;
+const SECONDS_TO_SCAN = 3;
 const ALLOW_DUPLICATES = true;
 
 const HomeScreen = ({ navigation }) => {
@@ -27,6 +32,7 @@ const HomeScreen = ({ navigation }) => {
   const [isScanningBleDevices, setIsScanningBleDevices] = useState(false);
   const [isGettingInstalledApps, setIsGettingInstalledApps] = useState(false);
   const [isGettingCurrentLocation, setIsGettingCurrentLocation] = useState(false);
+  const bssids = applicationStore.useState(s => s.desiredBSSIDs);
 
   useEffect(() => {
     /**
@@ -70,7 +76,7 @@ const HomeScreen = ({ navigation }) => {
 
   useEffect(() => {
     try {
-      BleManager.start({showAlert: false})
+      BleManager.start({ showAlert: false })
         .then(() => console.log("BleManager started"))
         .catch(error => console.error("BleManager could not start", error))
     } catch (error) {
@@ -176,7 +182,7 @@ const HomeScreen = ({ navigation }) => {
   const getInstalledApps = useCallback(() => {
     setIsGettingInstalledApps(true);
     const allInstalledApps = InstalledApps.getSortedApps();
-    const installedApps = allInstalledApps.map(ia => ({'packageName': ia.packageName, 'appName': ia.label}))
+    const installedApps = allInstalledApps.map(ia => ({ 'packageName': ia.packageName, 'appName': ia.label }))
     setRequestedInfo(JSON.stringify(installedApps));
     setIsGettingInstalledApps(false);
     setIsModalVisible(true);
@@ -191,28 +197,45 @@ const HomeScreen = ({ navigation }) => {
     });
   }, [requestedInfo]);
 
+  const handleItemPress = async (item: Document) => {
+    const data = await getBssids();
+    console.log(data);
+  }
+
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Modal
-        animationType='fade'
-        visible={isModalVisible}
-        onRequestClose={() => {
-          setIsModalVisible(false);
-        }}
-      >
-        <View style={{ flex: 1, alignItems: 'center', alignContent: 'center' }}>
-          <Text>{requestedInfo}</Text>
-          <Button title="Close" onPress={() => setIsModalVisible(false)} />
-        </View>
-      </Modal>
-      <Button title="Get Device Info" onPress={getDeviceInfo} disabled={isLoadingDeviceInfo} />
-      <Button title="Get AP Info" onPress={getApInfo} disabled={isLoadingApInfo} />
-      <Button title="Get Device Network Info" onPress={getDeviceNetworkInfo} disabled={isLoadingDeviceNetworkInfo} />
-      <Button title="Get Bluetooth Info" onPress={startBleScan} disabled={isScanningBleDevices} />
-      <Button title="Get Installed Apps" onPress={getInstalledApps} disabled={isGettingInstalledApps} />
-      <Button title="Get Current Location" onPress={getCurrentLocation} disabled={isGettingCurrentLocation} />
-    </View>
+    <SafeAreaView style={styles.safeAreaViewContainer}>
+      <FlatList data={DocumentListMock} renderItem={({ item }) => (
+        <Pressable style={({ pressed }) => pressed ? styles.documentItemContainerPressed : styles.documentItemContainer} onPress={() => handleItemPress(item)} >
+          <Text style={{ fontSize: 20 }}>{item.fileName}</Text>
+          <Text>{item.createdBy}</Text>
+        </Pressable>
+      )} />
+    </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  safeAreaViewContainer: {
+    flex: 1,
+    padding: 10,
+  },
+  documentListContainer: {
+    flex: 1,
+    flexDirection: "column",
+  },
+  documentItemContainer: {
+    flex: 1,
+    backgroundColor: "#dedede",
+    padding: 10,
+    margin: 5
+  },
+  documentItemContainerPressed: {
+    flex: 1,
+    backgroundColor: "#dedede",
+    padding: 10,
+    margin: 5,
+    opacity: 0.5
+  }
+});
 
 export default HomeScreen;

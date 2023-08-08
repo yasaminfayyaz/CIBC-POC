@@ -1,4 +1,4 @@
-export interface ApplicationProvider {
+export interface LocationProvider {
     fused: boolean;
     network: boolean;
     gps: boolean;
@@ -14,38 +14,38 @@ export interface PowerState {
 export interface DeviceInfo {
     applicationName: string;
     brand: string;
-    buildNumber: string;
-    bundleId: string;
-    deviceId: string;
-    deviceType: string;
-    readableVersion: string;
+    // buildNumber: string;
+    // bundleId: string;
+    // deviceId: string;
+    // deviceType: string;
+    // readableVersion: string;
     systemName: string;
-    systemVersion: string;
-    version: string;
-    deviceHasNotch: boolean;
-    deviceHasDynamicIsland: boolean;
-    tablet: boolean;
-    availableApplicationProviders: ApplicationProvider;
-    buildId: string;
-    batteryLevel: number;
-    carrier: string;
-    deviceName: string;
-    firstInstallTime: number;
-    fontScale: number;
-    freeDiskStorage: number;
-    installerPackageName: string;
+    // systemVersion: string;
+    // version: string;
+    // deviceHasNotch: boolean;
+    // deviceHasDynamicIsland: boolean;
+    // tablet: boolean;
+    availableLocationProviders: LocationProvider;
+    // buildId: string;
+    // batteryLevel: number;
+    // carrier: string;
+    // deviceName: string;
+    firstInstallTime: number; // in milliseconds
+    // fontScale: number;
+    // freeDiskStorage: number;
+    // installerPackageName: string;
     macAddress: string;
-    manufacturer: string;
-    powerState: PowerState;
-    totalDiskCapacity: number;
-    totalMemory: number;
+    // manufacturer: string;
+    // powerState: PowerState;
+    // totalDiskCapacity: number;
+    // totalMemory: number;
     uniqueId: string;
-    usedMemory: number;
-    userAgent: string;
-    batteryCharging: boolean;
+    // usedMemory: number;
+    // userAgent: string;
+    // batteryCharging: boolean;
     emulator: boolean;
-    landscape: boolean;
+    // landscape: boolean;
     locationEnabled: boolean;
-    headphonesConnected: boolean;
+    // headphonesConnected: boolean;
     pinOrFingerprintSet: boolean;
 }

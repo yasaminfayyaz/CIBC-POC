@@ -1,8 +1,8 @@
 export interface AccessPointItem {
-    timestamp: number;
+    // timestamp: number;
     level: number;
-    frequency: number;
+    // frequency: number;
     capabilities: string;
     BSSID: string;
-    SSID: string;
+    // SSID: string;
 }

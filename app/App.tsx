@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { applicationStore } from './store/applicationStore';
 
 import LandingScreen from './screens/LandingScreen';
+import NewPasswordScreen from './screens/NewPassword';
 import HomeScreen from './screens/HomeScreen';
 import DetailsScreen from './screens/DetailsScreen';
 
@@ -20,7 +21,10 @@ function App(): JSX.Element {
     <NavigationContainer>
       <Stack.Navigator>
         {userToken === undefined ? (
-          <Stack.Screen name="Sign In Screen" component={LandingScreen} options={{headerShown: false}} />
+          <>
+            <Stack.Screen name="Sign In Screen" component={LandingScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="NewPasswordScreen" component={NewPasswordScreen} options={{ headerShown: false }} />
+          </>
         ) : (
           <>
             <Stack.Screen name="Home" component={HomeScreen} />
