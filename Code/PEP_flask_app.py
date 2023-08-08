@@ -8,6 +8,14 @@ app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = "cibcproject"
 jwt = JWTManager(app)
 
+
+@app.route("/", methods=["POST"])
+def access_request():
+    data = request.json
+    return jsonify({"message": "Request received and processed"})
+
+
+
 @app.route("/login", methods=["POST"])
 def login():
     """
