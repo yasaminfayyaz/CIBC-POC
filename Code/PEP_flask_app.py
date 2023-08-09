@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify
 import bcrypt
-import sys
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from utils import indoorLocation
 from booleanChecks import areInstalledAppsSafe, isAtPrimaryBranch, isAtTrustedLocation, isRegisteredDevice, isWorkHours, isClearanceSufficient, isDeviceBrandUnsafe
