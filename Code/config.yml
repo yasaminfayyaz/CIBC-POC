@@ -1,0 +1,16 @@
+pdp:
+    host: "ec2-3-136-112-65.us-east-2.compute.amazonaws.com"
+    port: 8080
+    endpoint: "authzforce-ce-server"
+    ssl_verify: False
+    proxy_activate: False
+    proxy:
+        - proxy_user: "user"
+        - proxy_password: "password"
+auth:
+    auth_type: none
+    basic_authuser:
+        - user: 'admin'
+        - password: 'password'
+    x509:
+        - cert_path: '/opt/pyxacml_sdk/hargathor.pem'
