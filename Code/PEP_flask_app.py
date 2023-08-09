@@ -4,6 +4,7 @@ import sys
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from DB_Operations import Database
 from utils import indoorLocation
+from booleanChecks import *
 
 
 app = Flask(__name__)
@@ -31,13 +32,15 @@ def access_request():
             # Domain ID
             "oUVpvyqyEe6P-AZjTGYSFQ")
 
+    #Building XACML attributes using the data from the request, derived, and stored attributes
+    app_safety_status = Attribute(Attribute_ID.INSTALLED_APPS_SAFETY, areInstalledAppsSafe(data['installedApps'], Datatype.BOOLEAN)
+
+
     
 
 
 
-def access_request():
-    data = request.json
-    return jsonify({"message": "Request received and processed"})
+
 
 
 @app.route("/login", methods=["POST"])
@@ -82,7 +85,7 @@ def login():
         # if login count is not 0, check password against stored hash
         elif bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
             db.query("UPDATE Password SET loginCount = loginCount + 1 WHERE employeeID=%s", (employeeID,))
-            return jsonify(message="Login successful", code=0, ), 200
+            return jsonify(message="Login successful", code=0), 200
         else:
             return jsonify(message="Invalid password", code=1001), 401
     else:
