@@ -86,7 +86,7 @@ class Sdk(object):
 
         """
         with open(conf_file_path, 'r') as ymlfile:
-            cfg = yaml.load(ymlfile)
+            cfg = yaml.load(ymlfile, Loader=yaml.SafeLoader)
         logging.debug("Dumping configuration")
         logging.debug(cfg)
 
@@ -129,7 +129,7 @@ class Sdk(object):
         Search if category is inside the self.categories object
 
         :category: Enum Category
-        :returns: return empty dict if the category is not found and the  
+        :returns: return empty dict if the category is not found and the
                     category object if found
 
         """

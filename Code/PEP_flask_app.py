@@ -10,17 +10,20 @@ from pyxacml_sdk.model.categories import Category_ID
 from pyxacml_sdk.model.datatypes import Datatype
 from DB_Operations import Database
 
+# Relative path to configuration file
+config_file_path = "/home/Yafa/CIBC-POC/Code/config.yml"
+
+# Domain ID
+domain_id = "oUVpvyqyEe6P-AZjTGYSFQ"
 
 app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = "cibcproject"
 jwt = JWTManager(app)
 
 
-sdk = sdk.Sdk(
-                # Path to our configuration file
-                "config.yml",
-                # Domain ID
-                "oUVpvyqyEe6P-AZjTGYSFQ")
+
+# Initialize the SDK with the loaded configuration and domain ID
+sdk = sdk.Sdk(config_file_path, domain_id)
 
 @app.route("/", methods=["POST"])
 @jwt_required()
@@ -312,4 +315,4 @@ def get_bssids():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
