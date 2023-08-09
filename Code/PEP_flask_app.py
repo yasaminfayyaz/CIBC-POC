@@ -5,6 +5,12 @@ import JSON
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from utils import indoorLocation
 from booleanChecks import *
+from pyxacml_sdk.core import sdk
+from pyxacml_sdk.model.attribute import Attribute
+from pyxacml_sdk.model.attribute_ids import Attribute_ID
+from pyxacml_sdk.model.categories import Category_ID
+from pyxacml_sdk.model.datatypes import Datatype
+from DB_Operations import Database
 
 
 app = Flask(__name__)
@@ -12,21 +18,18 @@ app.config["JWT_SECRET_KEY"] = "cibcproject"
 jwt = JWTManager(app)
 
 
-
+sdk = sdk.Sdk(
+                # Path to our configuration file
+                "config.yml",
+                # Domain ID
+                "oUVpvyqyEe6P-AZjTGYSFQ")
 
 @app.route("/", methods=["POST"])
 @jwt_required()
 
 def access_request():
-    from pyxacml_sdk.core import sdk
-    from pyxacml_sdk.model.attribute import Attribute
-    from pyxacml_sdk.model.attribute_ids import Attribute_ID
-    from pyxacml_sdk.model.categories import Category_ID
-    from pyxacml_sdk.model.datatypes import Datatype
-    from DB_Operations import Database
 
     try:
-
         data = request.get_json()
 
         employeeID = get_jwt_identity()
@@ -36,13 +39,6 @@ def access_request():
 
         actionID = data["ActionID"]
 
-
-
-        sdk = sdk.Sdk(
-                # Path to our configuration file
-                "config.yml",
-                # Domain ID
-                "oUVpvyqyEe6P-AZjTGYSFQ")
 
         #Building XACML attributes using the data from the request, derived, and stored attributes
 
