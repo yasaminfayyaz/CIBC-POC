@@ -117,6 +117,24 @@ def areInstalledAppsSafe(apps_on_phone):
         db.con.close()
 
 
+def isDeviceBrandUnsafe(brand):
+    try:
+        db = Database("SecurityRestrictions")
+        # Query the database to see if the brand name is in the blacklist
+        result = db.query("SELECT * FROM BlacklistedApps WHERE brandName = %s", (brand,))
 
+        # If the result is not empty, the brand is blacklisted
+        if result:
+            return True
+
+        # Otherwise, brand is not blacklisted
+        return True
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return -1
+
+    finally:
+        db.con.close()
 
 

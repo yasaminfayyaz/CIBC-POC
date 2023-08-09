@@ -26,7 +26,24 @@ class Attribute_ID(Enum):
     CURRENT_TIME = "urn:oasis:names:tc:xacml:1.0:environment:current-time"
     CURRENT_DATE = "urn:oasis:names:tc:xacml:1.0:environment:current-date"
     CURRENT_DATEXML = "urn:oasis:names:tc:xacml:1.0:environment:current-http://www.w3.org/2001/XMLSchema#date"
-    INSTALLED_APPS_SAFETY = "urn:custom:device:installed-apps-safety"
+
+    #Custom attributes defined by us
+
+    INSTALLED_APPS_SAFET = "urn:custom:device:installed-apps-safe"
+    LOCATION_TRUSTED = "urn:custom:device:location:location-trusted"
+    DEVICE_REGISTERED = "urn:custom:device:device-registered"
+    DEVICE_REDFLAGS = "urn:custom:device:redflags"
+    WORK_HOURS = "urn:custom:environment:work-hours"
+    SUFFICIENT_CLEARANCE = "urn:custom:employee:sufficient-clearance"
+    AT_PRIMARY_BRANCH = "urn:custom:employee:at-primary-branch"
+
+    EMPLOYEE_DEPARTMENT = "urn:custom:employee:department"
+    EMPLOYEE_INIT_CLEARANCE = "urn:custom:employee:initial-clearance"
+
+    RESOURCE_DEPARTMENT = "urn:custom:resource:department"
+    RESOURCE_TYPE = "urn:custom:resource:type"
+    RESOURCE_SEC_LEVEL = "urn:custom:resource:security-level"
+
 
     def __str__(self):
         return '{0}'.format(self.value)
