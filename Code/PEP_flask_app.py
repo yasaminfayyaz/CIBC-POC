@@ -1,10 +1,9 @@
 from flask import Flask, request, jsonify
 import bcrypt
 import sys
-import JSON
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from utils import indoorLocation
-from booleanChecks import *
+from booleanChecks import areInstalledAppsSafe, isAtPrimaryBranch, isAtTrustedLocation, isRegisteredDevice, isWorkHours, isClearanceSufficient, isDeviceBrandUnsafe
 from pyxacml_sdk.core import sdk
 from pyxacml_sdk.model.attribute import Attribute
 from pyxacml_sdk.model.attribute_ids import Attribute_ID
@@ -26,91 +25,115 @@ sdk = sdk.Sdk(
 
 @app.route("/", methods=["POST"])
 @jwt_required()
-
 def access_request():
-
     try:
         data = request.get_json()
-
         employeeID = get_jwt_identity()
-
-        #TODO: ASK FELIPE TO INCLUDE THESE IN THE REQUEST
         resourceID = data["ResourceID"]
-
         actionID = data["ActionID"]
 
+        # Building + adding XACML attributes using the data from the request, derived, and stored attributes
 
-        #Building XACML attributes using the data from the request, derived, and stored attributes
+        # Dynamic attributes
+        try:
+            app_safety_status = Attribute(Attribute_ID.INSTALLED_APPS_SAFE, areInstalledAppsSafe(data["installedApps"]), Datatype.BOOLEAN)
+            sdk.add_attribute(Category_ID.REQUESTING_MACHINE, app_safety_status)
+        except:
+            pass
 
+        try:
+            at_primary_branch = Attribute(Attribute_ID.AT_PRIMARY_BRANCH, isAtPrimaryBranch(employeeID, data["CurrentLocationCoords"]["latitude"], data["CurrentLocationCoords"]["longitude"]), Datatype.BOOLEAN)
+            sdk.add_attribute(Category_ID.ACCESS_SUBJECT, at_primary_branch)
+        except:
+            pass
 
-        #Dyanmic attributes
+        try:
+            location_trusted = Attribute(Attribute_ID.LOCATION_TRUSTED, isAtTrustedLocation(employeeID), Datatype.BOOLEAN)
+            sdk.add_attribute(Category_ID.ACCESS_SUBJECT, location_trusted)
+        except:
+            pass
 
-        app_safety_status = Attribute(Attribute_ID.INSTALLED_APPS_SAFE, areInstalledAppsSafe(data["installedApps"]), Datatype.BOOLEAN)
-        at_primary_branch = Attribute(Attribute_ID.AT_PRIMARY_BRANCH, isAtPrimaryBranch(employeeID, data["CurrentLocationCoords"]["latitude"], data["CurrentLocationCoords"]["longitude"]), Datatype.BOOLEAN)
-        location_trusted = Attribute(Attribute_ID.LOCATION_TRUSTED, isAtTrustedLocation(employeeID), Datatype.BOOLEAN)
-        #TODO: CONFIRM UNIQUEID IS THE DEVICE IDENTIFIER
-        device_registered = Attribute(Attribute_ID.DEVICE_REGISTERED, isRegisteredDevice(employeeID, data["DeviceInfo"]["uniqueId"]), Datatype.BOOLEAN)
-        work_hours = Attribute(Attribute_ID.WORK_HOURS, isWorkHours(), Datatype.BOOLEAN)
-        #Is clearance of those around same or higher than the employee?
-        sufficient_clearnace = Attribute(Attribute_ID.SUFFICIENT_CLEARANCE, isClearanceSufficient(employeeID), Datatype.BOOLEAN)
-        redflags =  data["CurrentLocation"]["mocked"] or not data["DeviceInfo"]["pinOrFingerprintSet"] or \
-                           data["DeviceInfo"]["emulator"] or isDeviceBrandUnsafe(data["DeviceInfo"]["brand"])
-        #Are there any red flags with the device?
-        device_redflags = Attribute(Attribute_ID.DEVICE_REDFLAGS, redflags, Datatype.BOOLEAN)
+        try:
+            # TODO: CONFIRM "UniqueID" IS THE DEVICE IDENTIFIER
+
+            device_registered = Attribute(Attribute_ID.DEVICE_REGISTERED, isRegisteredDevice(employeeID, data["DeviceInfo"]["uniqueId"]), Datatype.BOOLEAN)
+            sdk.add_attribute(Category_ID.REQUESTING_MACHINE, device_registered)
+        except:
+            pass
+
+        try:
+            work_hours = Attribute(Attribute_ID.WORK_HOURS, isWorkHours(), Datatype.BOOLEAN)
+            sdk.add_attribute(Category_ID.ENVIRONMENT, work_hours)
+        except:
+            pass
+
+        try:
+            sufficient_clearnace = Attribute(Attribute_ID.SUFFICIENT_CLEARANCE, isClearanceSufficient(employeeID), Datatype.BOOLEAN)
+            sdk.add_attribute(Category_ID.ACCESS_SUBJECT, sufficient_clearnace)
+        except:
+            pass
+
+        try:
+            redflags = data["CurrentLocation"]["mocked"] or not data["DeviceInfo"]["pinOrFingerprintSet"] or data["DeviceInfo"]["emulator"] or isDeviceBrandUnsafe(data["DeviceInfo"]["brand"])
+            device_redflags = Attribute(Attribute_ID.DEVICE_REDFLAGS, redflags, Datatype.BOOLEAN)
+            sdk.add_attribute(Category_ID.REQUESTING_MACHINE, device_redflags)
+        except:
+            pass
+
         #TODO: GET CURRENT CLEARNACE
 
-        #Static employee attributes
-        db_employee = Database("Employees")
-        department = db_employee.query("SELECT department FROM Employee WHERE employeeID = %s", (employeeID,))[0]["department"]
-        employee_department = Attribute(Attribute_ID.EMPLOYEE_DEPARTMENT, department, Datatype.STRING)
-        initial_clearance = db_employee.query("SELECT initSecClearance FROM Employee WHERE employeeID = %s", (employeeID,))[0]["initSecClearance"]
-        employee_initial_clearance = Attribute(Attribute_ID.EMPLOYEE_INIT_CLEARANCE, initial_clearance, Datatype.STRING)
-        db_employee.con.close()
+        # Static employee attributes
+        try:
+            db_employee = Database("Employees")
+            department = db_employee.query("SELECT department FROM Employee WHERE employeeID = %s", (employeeID,))[0]["department"]
+            employee_department = Attribute(Attribute_ID.EMPLOYEE_DEPARTMENT, department, Datatype.STRING)
+            sdk.add_attribute(Category_ID.ACCESS_SUBJECT, employee_department)
 
-        #Resource attributes
-        db_resource = Database("Resources")
-        department = db_resource.query("SELECT department FROM Resource WHERE resourceID = %s", (resourceID,))[0]["department"]
-        resource_department = Attribute(Attribute_ID.RESOURCE_DEPARTMENT, department, Datatype.STRING)
-        type = db_resource.query("SELECT resourceType FROM Resource WHERE resourceID = %s", (resourceID,))[0]["resourceType"]
-        resource_type = Attribute(Attribute_ID.RESOURCE_TYPE, type, Datatype.STRING)
-        security_level = db_resource.query("SELECT secLevel FROM Resource WHERE resourceID = %s", (resourceID,))[0]["secLevel"]
-        resource_security_level = Attribute(Attribute_ID.RESOURCE_SEC_LEVEL, security_level, Datatype.STRING)
-        db_resource.con.close()
+            initial_clearance = db_employee.query("SELECT initSecClearance FROM Employee WHERE employeeID = %s", (employeeID,))[0]["initSecClearance"]
+            employee_initial_clearance = Attribute(Attribute_ID.EMPLOYEE_INIT_CLEARANCE, initial_clearance, Datatype.STRING)
+            sdk.add_attribute(Category_ID.ACCESS_SUBJECT, employee_initial_clearance)
+            db_employee.con.close()
+        except:
+            pass
 
-        #Action attributes
-        action_id = Attribute(Attribute_ID.ACTION_ID, actionID, Datatype.STRING)
+        # Resource attributes
+        try:
+            db_resource = Database("Resources")
+            department = db_resource.query("SELECT department FROM Resource WHERE resourceID = %s", (resourceID,))[0]["department"]
+            resource_department = Attribute(Attribute_ID.RESOURCE_DEPARTMENT, department, Datatype.STRING)
+            sdk.add_attribute(Category_ID.RESOURCE, resource_department)
 
+            type = db_resource.query("SELECT resourceType FROM Resource WHERE resourceID = %s", (resourceID,))[0]["resourceType"]
+            resource_type = Attribute(Attribute_ID.RESOURCE_TYPE, type, Datatype.STRING)
+            sdk.add_attribute(Category_ID.RESOURCE, resource_type)
 
-        # Adding attributes to our request
-        sdk.add_attribute(Category_ID.REQUESTING_MACHINE, app_safety_status)
-        sdk.add_attribute(Category_ID.ACCESS_SUBJECT, at_primary_branch)
-        sdk.add_attribute(Category_ID.ACCESS_SUBJECT, location_trusted)
-        sdk.add_attribute(Category_ID.REQUESTING_MACHINE, device_registered)
-        sdk.add_attribute(Category_ID.ENVIRONMENT, work_hours)
-        sdk.add_attribute(Category_ID.ACCESS_SUBJECT, sufficient_clearnace)
-        sdk.add_attribute(Category_ID.REQUESTING_MACHINE, device_redflags)
-        sdk.add_attribute(Category_ID.ACCESS_SUBJECT, employee_department)
-        sdk.add_attribute(Category_ID.ACCESS_SUBJECT, employee_initial_clearance)
-        sdk.add_attribute(Category_ID.RESOURCE, resource_department)
-        sdk.add_attribute(Category_ID.RESOURCE, resource_type)
-        sdk.add_attribute(Category_ID.RESOURCE, resource_security_level)
-        sdk.add_attribute(Category_ID.ACTION, action_id)
+            security_level = db_resource.query("SELECT secLevel FROM Resource WHERE resourceID = %s", (resourceID,))[0]["secLevel"]
+            resource_security_level = Attribute(Attribute_ID.RESOURCE_SEC_LEVEL, security_level, Datatype.STRING)
+            sdk.add_attribute(Category_ID.RESOURCE, resource_security_level)
+            db_resource.con.close()
+        except:
+            pass
+
+        # Action attributes
+        try:
+            action_id = Attribute(Attribute_ID.ACTION_ID, actionID, Datatype.STRING)
+            sdk.add_attribute(Category_ID.ACTION, action_id)
+        except:
+            pass
 
         # Asking for Authorization
         decision, raw = sdk.get_authz()
 
-        #Communicating the decision to the client
+        # Communicating the decision to the client
         if decision == "Permit":
             return jsonify({"message": "Access granted", "code": 1000}), 200
         elif decision == "Deny":
             return jsonify({"message": "Access denied", "code": 1001}), 403
-
         else:
             return jsonify({"message": "Error", "code": 1002}), 500
 
     except Exception as e:
         return jsonify({"message": f"An unexpected error occurred: {str(e)}", "code": 1003}), 500
-
 
 @app.route("/login", methods=["POST"])
 def login():
