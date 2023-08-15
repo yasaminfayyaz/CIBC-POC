@@ -41,6 +41,9 @@ def indoorLocation(BSSIDs, RSSIs, employeeID):
         db_location.con.close()
         db_employee.con.close()
 
+def stringSecLabel_to_int(label):
+    mapping = {"Top Secret" : 5, "Secret" : 4, "Confidential" : 3, "Restricted" : 2, "Unclassified" : 1}
+    return mapping[label]
 
 
 

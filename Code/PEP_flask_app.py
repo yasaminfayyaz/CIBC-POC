@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-from utils import indoorLocation
+from utils import indoorLocation, stringSecLabel_to_int
 from booleanChecks import areInstalledAppsSafe, isAtPrimaryBranch, isAtTrustedLocation, isRegisteredDevice, isWorkHours, isClearanceSufficient, isDeviceBrandUnsafe
 from pyxacml_sdk.core import sdk
 from pyxacml_sdk.model.attribute import Attribute
@@ -38,62 +38,73 @@ def access_request():
 
         # Dynamic attributes
         try:
+            # Checks if any of the installed apps on the employee's phone are blacklisted due to potential security risks
             app_safety_status = Attribute(Attribute_ID.INSTALLED_APPS_SAFE, areInstalledAppsSafe(data["installedApps"]), Datatype.BOOLEAN)
-            sdk.add_attribute(Category_ID.REQUESTING_MACHINE, app_safety_status)
+            sdk.add_attribute(Category_ID.subjectCat, app_safety_status)
         except:
             pass
 
         try:
+            # Checks if the employee is at their primary branch
             at_primary_branch = Attribute(Attribute_ID.AT_PRIMARY_BRANCH, isAtPrimaryBranch(employeeID, data["CurrentLocationCoords"]["latitude"], data["CurrentLocationCoords"]["longitude"]), Datatype.BOOLEAN)
-            sdk.add_attribute(Category_ID.ACCESS_SUBJECT, at_primary_branch)
+            sdk.add_attribute(Category_ID.subjectCat, at_primary_branch)
         except:
             pass
 
         try:
+            # Checks if the employee is at a trusted location
             location_trusted = Attribute(Attribute_ID.LOCATION_TRUSTED, isAtTrustedLocation(employeeID), Datatype.BOOLEAN)
-            sdk.add_attribute(Category_ID.ACCESS_SUBJECT, location_trusted)
+            sdk.add_attribute(Category_ID.subjectCat, location_trusted)
         except:
             pass
 
         try:
             # TODO: CONFIRM "UniqueID" IS THE DEVICE IDENTIFIER
+            # Checks if the employee's device is registered
 
             device_registered = Attribute(Attribute_ID.DEVICE_REGISTERED, isRegisteredDevice(employeeID, data["DeviceInfo"]["uniqueId"]), Datatype.BOOLEAN)
-            sdk.add_attribute(Category_ID.REQUESTING_MACHINE, device_registered)
+            sdk.add_attribute(Category_ID.subjectCat, device_registered)
         except:
             pass
 
         try:
+            # Checks if the employee is making the access request during work hours
             work_hours = Attribute(Attribute_ID.WORK_HOURS, isWorkHours(), Datatype.BOOLEAN)
             sdk.add_attribute(Category_ID.ENVIRONMENT, work_hours)
         except:
             pass
 
         try:
+            # Check to see if employees in the same indoor location as the one making access requests have equal or higher clearance
             sufficient_clearnace = Attribute(Attribute_ID.SUFFICIENT_CLEARANCE, isClearanceSufficient(employeeID), Datatype.BOOLEAN)
-            sdk.add_attribute(Category_ID.ACCESS_SUBJECT, sufficient_clearnace)
+            sdk.add_attribute(Category_ID.subjectCat, sufficient_clearnace)
         except:
             pass
 
         try:
+            # Checks if the employee's device is a known emulator or has a known unsafe brand, etc.
             redflags = data["CurrentLocation"]["mocked"] or not data["DeviceInfo"]["pinOrFingerprintSet"] or data["DeviceInfo"]["emulator"] or isDeviceBrandUnsafe(data["DeviceInfo"]["brand"])
             device_redflags = Attribute(Attribute_ID.DEVICE_REDFLAGS, redflags, Datatype.BOOLEAN)
-            sdk.add_attribute(Category_ID.REQUESTING_MACHINE, device_redflags)
+            sdk.add_attribute(Category_ID.subjectCat, device_redflags)
         except:
             pass
-
+        #  Employee's current clearnace which be dynamically updated based on trust score, possible values: {Top Secret, Secret, Confidential, Restricted, Unclassified}
         #TODO: GET CURRENT CLEARNACE
 
         # Static employee attributes
         try:
             db_employee = Database("Employees")
+            # Possible values: {Customer Service, Accounting, Risk Management, Loan Processing, Mortgage Services, Investment Banking, Compliance, Human Resources, Information Technology, Marketing}
             department = db_employee.query("SELECT department FROM Employee WHERE employeeID = %s", (employeeID,))[0]["department"]
             employee_department = Attribute(Attribute_ID.EMPLOYEE_DEPARTMENT, department, Datatype.STRING)
-            sdk.add_attribute(Category_ID.ACCESS_SUBJECT, employee_department)
+            sdk.add_attribute(Category_ID.subjectCat, employee_department)
 
+
+
+            # Possible values: {Top Secret: 5, Secret: 4, Confidential: 3, Restricted: 2, Unclassified: 1}
             initial_clearance = db_employee.query("SELECT initSecClearance FROM Employee WHERE employeeID = %s", (employeeID,))[0]["initSecClearance"]
-            employee_initial_clearance = Attribute(Attribute_ID.EMPLOYEE_INIT_CLEARANCE, initial_clearance, Datatype.STRING)
-            sdk.add_attribute(Category_ID.ACCESS_SUBJECT, employee_initial_clearance)
+            employee_initial_clearance = Attribute(Attribute_ID.EMPLOYEE_INIT_CLEARANCE, stringSecLabel_to_int(initial_clearance), Datatype.INTEGER)
+            sdk.add_attribute(Category_ID.subjectCat, employee_initial_clearance)
             db_employee.con.close()
         except:
             pass
@@ -101,17 +112,20 @@ def access_request():
         # Resource attributes
         try:
             db_resource = Database("Resources")
+            # Possible values: {Customer Service, Accounting, Risk Management, Loan Processing, Mortgage Services, Investment Banking, Compliance, Human Resources, Information Technology, Marketing}
             department = db_resource.query("SELECT department FROM Resource WHERE resourceID = %s", (resourceID,))[0]["department"]
             resource_department = Attribute(Attribute_ID.RESOURCE_DEPARTMENT, department, Datatype.STRING)
-            sdk.add_attribute(Category_ID.RESOURCE, resource_department)
-
+            sdk.add_attribute(Category_ID.resourceCat, resource_department)
+            # Possible values: {Records, Archives, Documents, Artifacts, Information Assets, Intellectual Property, Research Materials}
             type = db_resource.query("SELECT resourceType FROM Resource WHERE resourceID = %s", (resourceID,))[0]["resourceType"]
             resource_type = Attribute(Attribute_ID.RESOURCE_TYPE, type, Datatype.STRING)
-            sdk.add_attribute(Category_ID.RESOURCE, resource_type)
+            sdk.add_attribute(Category_ID.resourceCat, resource_type)
 
+
+            # Possible values: {Top Secret: 5, Secret: 4, Confidential: 3, Restricted: 2, Unclassified: 1}
             security_level = db_resource.query("SELECT secLevel FROM Resource WHERE resourceID = %s", (resourceID,))[0]["secLevel"]
-            resource_security_level = Attribute(Attribute_ID.RESOURCE_SEC_LEVEL, security_level, Datatype.STRING)
-            sdk.add_attribute(Category_ID.RESOURCE, resource_security_level)
+            resource_security_level = Attribute(Attribute_ID.RESOURCE_SEC_LEVEL, stringSecLabel_to_int(security_level), Datatype.INTEGER)
+            sdk.add_attribute(Category_ID.resourceCat, resource_security_level)
             db_resource.con.close()
         except:
             pass
@@ -119,7 +133,7 @@ def access_request():
         # Action attributes
         try:
             action_id = Attribute(Attribute_ID.ACTION_ID, actionID, Datatype.STRING)
-            sdk.add_attribute(Category_ID.ACTION, action_id)
+            sdk.add_attribute(Category_ID.actionCat, action_id)
         except:
             pass
 
@@ -131,11 +145,13 @@ def access_request():
             return jsonify({"message": "Access granted", "code": 1000}), 200
         elif decision == "Deny":
             return jsonify({"message": "Access denied", "code": 1001}), 403
+        elif decision == "Indeterminate":
+            return jsonify({"message": "Access denied: INSUFFICIENT INFORMATION!", "code": 1002}), 403
         else:
-            return jsonify({"message": "Error", "code": 1002}), 500
+            return jsonify({"message": "Error", "code": 1003}), 500
 
     except Exception as e:
-        return jsonify({"message": f"An unexpected error occurred: {str(e)}", "code": 1003}), 500
+        return jsonify({"message": f"An unexpected error occurred: {str(e)}", "code": 1004}), 500
 
 @app.route("/login", methods=["POST"])
 def login():

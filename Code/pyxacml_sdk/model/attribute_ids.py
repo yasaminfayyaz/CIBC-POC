@@ -39,6 +39,8 @@ class Attribute_ID(Enum):
 
     EMPLOYEE_DEPARTMENT = "urn:custom:employee:department"
     EMPLOYEE_INIT_CLEARANCE = "urn:custom:employee:initial-clearance"
+    EMPLOYEE_CURRENT_CLEARANCE = "urn:custom:employee:current-clearance"
+
 
     RESOURCE_DEPARTMENT = "urn:custom:resource:department"
     RESOURCE_TYPE = "urn:custom:resource:type"

@@ -13,14 +13,14 @@ from enum import Enum
 
 
 class Category_ID(Enum):
-    ACCESS_SUBJECT = "urn:oasis:names:tc:xacml:1.0:subject-category:access-subject"
-    RECIPIENT_SUBJECT = "urn:oasis:names:tc:xacml:1.0:subject-category:recipient-subject"
-    INTERMEDIARY_SUBJECT = "urn:oasis:names:tc:xacml:1.0:subject-category:intermediary-subject"
-    RESOURCE = "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"
-    ACTION = "urn:oasis:names:tc:xacml:3.0:attribute-category:action"
-    ENVIRONMENT = "urn:oasis:names:tc:xacml:3.0:attribute-category:environment"
-    CODEBASE = "urn:oasis:names:tc:xacml:1.0:subject-category:codebase"
-    REQUESTING_MACHINE = "urn:oasis:names:tc:xacml:1.0:subject-category:requesting-machine"
+    subjectCat = "urn:oasis:names:tc:xacml:1.0:subject-category:access-subject"
 
-    def __str__(self):
+    resourceCat = "urn:oasis:names:tc:xacml:3.0:attribute-category:resource"
+
+    actionCat = "urn:oasis:names:tc:xacml:3.0:attribute-category:action"
+
+    environmentCat = "urn:oasis:names:tc:xacml:3.0:attribute-category:environment"
+
+
+def __str__(self):
         return '{0}'.format(self.value)
