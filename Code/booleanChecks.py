@@ -14,9 +14,9 @@ def isAtPrimaryBranch(employeeID, currentLat, currentLong):
         distance = geodesic((currentLat, currentLong), (branchLat, branchLong)).kilometers
         # Compare the distance with the radius
         return distance <= radius
-    except Exception:
+    except Exception as e:
         print(f"An error occurred: {e}")
-        return "Missing"
+        raise e
     finally:
         db.con.close()
 
@@ -30,7 +30,7 @@ def isAtTrustedLocation(employeeID):
         return bool(isTrusted)
     except Exception as e:
         print(f"An error occurred: {e}")
-        return "Missing"
+        raise e
     finally:
         db_employee.con.close()
         db_location.con.close()
@@ -46,7 +46,7 @@ def isRegisteredDevice(employeeID, currentDeviceID):
             return False
     except Exception as e:
         print(f"An error occurred: {e}")
-        return "Missing"
+        raise e
 
     finally:
         db.con.close()
@@ -89,7 +89,7 @@ def isClearanceSufficient(employeeID):
 
     except Exception as e:
         print(f"An error occurred: {e}")
-        return "Missing"
+        raise e
 
 
 def areInstalledAppsSafe(apps_on_phone):
@@ -112,7 +112,7 @@ def areInstalledAppsSafe(apps_on_phone):
 
     except Exception as e:
         print(f"An error occurred: {e}")
-        return "Missing"
+        raise e
 
 
     finally:
@@ -134,7 +134,7 @@ def isDeviceBrandUnsafe(brand):
 
     except Exception as e:
         print(f"An error occurred: {e}")
-        return "Missing"
+        raise e
 
 
     finally:
