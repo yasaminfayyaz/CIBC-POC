@@ -29,12 +29,13 @@ class Attribute_ID(Enum):
 
     #Custom attributes defined by us
 
-    INSTALLED_APPS_SAFET = "urn:custom:device:installed-apps-safe"
+    INSTALLED_APPS_SAFE = "urn:custom:device:installed-apps-safe"
     LOCATION_TRUSTED = "urn:custom:device:location:location-trusted"
     DEVICE_REGISTERED = "urn:custom:device:device-registered"
     DEVICE_REDFLAGS = "urn:custom:device:redflags"
     WORK_HOURS = "urn:custom:environment:work-hours"
     SUFFICIENT_CLEARANCE = "urn:custom:employee:sufficient-clearance"
+    SUFFICIENT_CLEARANCE_EXISTS = "urn:custom:employee:sufficient-clearance-exists"
     AT_PRIMARY_BRANCH = "urn:custom:employee:at-primary-branch"
 
     EMPLOYEE_DEPARTMENT = "urn:custom:employee:department"

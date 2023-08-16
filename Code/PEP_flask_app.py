@@ -14,7 +14,7 @@ from DB_Operations import Database
 config_file_path = "/home/Yafa/CIBC-POC/Code/config.yml"
 
 # Domain ID
-domain_id = "oUVpvyqyEe6P-AZjTGYSFQ"
+domain_id = "A0bdIbmGEeWhFwcKrC9gSQ"
 
 app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = "cibcproject"
@@ -59,7 +59,6 @@ def access_request():
             pass
 
         try:
-            # TODO: CONFIRM "UniqueID" IS THE DEVICE IDENTIFIER
             # Checks if the employee's device is registered
 
             device_registered = Attribute(Attribute_ID.DEVICE_REGISTERED, isRegisteredDevice(employeeID, data["DeviceInfo"]["uniqueId"]), Datatype.BOOLEAN)
@@ -70,16 +69,17 @@ def access_request():
         try:
             # Checks if the employee is making the access request during work hours
             work_hours = Attribute(Attribute_ID.WORK_HOURS, isWorkHours(), Datatype.BOOLEAN)
-            sdk.add_attribute(Category_ID.ENVIRONMENT, work_hours)
+            sdk.add_attribute(Category_ID.environmentCat, work_hours)
         except:
             pass
 
         try:
             # Check to see if employees in the same indoor location as the one making access requests have equal or higher clearance
-            sufficient_clearnace = Attribute(Attribute_ID.SUFFICIENT_CLEARANCE, isClearanceSufficient(employeeID), Datatype.BOOLEAN)
-            sdk.add_attribute(Category_ID.subjectCat, sufficient_clearnace)
+            sufficient_clearance = Attribute(Attribute_ID.SUFFICIENT_CLEARANCE, isClearanceSufficient(employeeID), Datatype.BOOLEAN)
+            sdk.add_attribute(Category_ID.subjectCat, sufficient_clearance)
         except:
-            pass
+            sufficient_clearance_exists = Attribute(Attribute_ID.SUFFICIENT_CLEARANCE_EXISTS, False, Datatype.BOOLEAN)
+            sdk.add_attribute(Category_ID.subjectCat, sufficient_clearance_exists)
 
         try:
             # Checks if the employee's device is a known emulator or has a known unsafe brand, etc.
@@ -88,8 +88,8 @@ def access_request():
             sdk.add_attribute(Category_ID.subjectCat, device_redflags)
         except:
             pass
-        #  Employee's current clearnace which be dynamically updated based on trust score, possible values: {Top Secret, Secret, Confidential, Restricted, Unclassified}
-        #TODO: GET CURRENT CLEARNACE
+        #  Employee's current clearance which be dynamically updated based on trust score, possible values: {Top Secret, Secret, Confidential, Restricted, Unclassified}
+        #TODO: GET CURRENT CLEARANCE
 
         # Static employee attributes
         try:
