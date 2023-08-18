@@ -8,6 +8,7 @@ import { login } from '../services/User';
 import { Loader } from '../components/Loader/Loader';
 
 const LandingScreen = ({ navigation }) => {
+  const token = applicationStore.useState(s => s.userToken);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isDoingSignIn, setIsDoingSignIn] = useState(false);
@@ -21,7 +22,14 @@ const LandingScreen = ({ navigation }) => {
         setDesiredBssids(resp);
       });
     }
+    if (token) {
+      applicationStore.update(applicationState => {
+        applicationState.userToken = undefined;
+      });
+    }
   }, []);
+
+  console.log(token);
 
   useEffect(() => {
     if (desiredBssids) {
@@ -31,7 +39,7 @@ const LandingScreen = ({ navigation }) => {
     }
   }, [desiredBssids]);
 
-  const navigateToUpdatePassword = () => navigation.push("NewPasswordScreen", { username: username });
+  const navigateToUpdatePassword = () => navigation.push("NewPasswordScreen");
 
   const doSignIn = useCallback(async () => {
     if (username && password) {
@@ -42,10 +50,13 @@ const LandingScreen = ({ navigation }) => {
       if (response.code === 1001 || response.code === 1002) {
         Alert.alert('Sign in error', 'Incorrect username or password', [{ text: 'Ok', style: 'default' }]);
       } else if (response.code === 1000) {
+        applicationStore.update(applicationState => {
+          applicationState.userToken = response.token;
+        });
         Alert.alert('First login detected', 'Please set a new password', [{ text: 'Ok', style: 'default', onPress: navigateToUpdatePassword }])
       } else if (response.code === 0) {
         applicationStore.update(applicationState => {
-          applicationState.userToken = "myApplicationToken";
+          applicationState.userToken = response.token;
         });
       }
 

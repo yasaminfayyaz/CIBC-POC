@@ -6,7 +6,8 @@ import { setPassword } from '../services/User';
 import { Loader } from '../components/Loader/Loader';
 
 const LandingScreen = ({ route, navigation }) => {
-    const { username } = route.params;
+    // const { username } = route.params;
+    const { token } = applicationStore.useState(s => s.userToken);
     const [oldPassword, setOldPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
@@ -15,9 +16,9 @@ const LandingScreen = ({ route, navigation }) => {
     const navigateToSignInScreen = () => navigation.pop();
 
     const doPasswordUpdate = useCallback(async () => {
-        if (username && oldPassword && newPassword) {
+        if (token && oldPassword && newPassword) {
             setIsUpdatingPassword(true);
-            const response = await setPassword(username, oldPassword, newPassword);
+            const response = await setPassword(token, oldPassword, newPassword);
             setIsUpdatingPassword(false);
 
             if (response.code === 1001 || response.code === 1002) {
