@@ -8,10 +8,10 @@ import BleManager, { BleScanCallbackType, BleScanMatchMode, BleScanMode, Periphe
 import { InstalledApps } from 'react-native-launcher-kit';
 import Geolocation from '@react-native-community/geolocation';
 import { getBssids } from '../services/GetBssids';
+import { getResources } from '../services/Resources';
 
-import { DocumentListMock } from '../mocks/Documents';
-import { Document } from '../types/Document';
 import { applicationStore } from '../store/applicationStore';
+import { Resource } from '../types/Resource';
 
 const BleManagerModule = NativeModules.BleManager;
 const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
@@ -25,7 +25,9 @@ const HomeScreen = ({ navigation }) => {
   const [requestedInfo, setRequestedInfo] = useState('');
   const [locationGranted, setLocationGranted] = useState('');
   const [bleDevices, setBleDevices] = useState(new Map<Peripheral['id'], Peripheral>());
+  const [resources, setResources] = useState<Resource[]>([]);
 
+  const [isGettingResources, setIsGettingResources] = useState(false);
   const [isLoadingDeviceInfo, setIsLoadingDeviceInfo] = useState(false);
   const [isLoadingApInfo, setIsLoadingApInfo] = useState(false);
   const [isLoadingDeviceNetworkInfo, setIsLoadingDeviceNetworkInfo] = useState(false);
@@ -33,6 +35,19 @@ const HomeScreen = ({ navigation }) => {
   const [isGettingInstalledApps, setIsGettingInstalledApps] = useState(false);
   const [isGettingCurrentLocation, setIsGettingCurrentLocation] = useState(false);
   const bssids = applicationStore.useState(s => s.desiredBSSIDs);
+
+  const token = applicationStore.useState(s => s.userToken);
+
+  const getAvailableResources = useCallback(async () => {
+    setIsGettingResources(true);
+    const availableResources = await getResources(token);
+    setIsGettingResources(false);
+    setResources(availableResources.resources);
+  }, [resources]);
+
+  useEffect(() => {
+    if (resources.length === 0) getAvailableResources();
+  }, [resources])
 
   useEffect(() => {
     /**
@@ -197,19 +212,37 @@ const HomeScreen = ({ navigation }) => {
     });
   }, [requestedInfo]);
 
-  const handleItemPress = async (item: Document) => {
-    const data = await getBssids();
-    console.log(data);
+  const handleItemPress = () => {
+    console.log("Item pressed");
+  }
+
+  const handleLogout = () => {
+    applicationStore.update(applicationState => {
+      applicationState.userToken = undefined;
+    });
   }
 
   return (
     <SafeAreaView style={styles.safeAreaViewContainer}>
-      <FlatList data={DocumentListMock} renderItem={({ item }) => (
-        <Pressable style={({ pressed }) => pressed ? styles.documentItemContainerPressed : styles.documentItemContainer} onPress={() => handleItemPress(item)} >
-          <Text style={{ fontSize: 20 }}>{item.fileName}</Text>
-          <Text>{item.createdBy}</Text>
-        </Pressable>
-      )} />
+      {resources.length !== 0 ? (
+        <>
+          <View style={styles.documentListContainer}>
+            <FlatList data={resources} renderItem={({ item }) => (
+              <Pressable style={({ pressed }) => pressed ? styles.documentItemContainerPressed : styles.documentItemContainer} onPress={handleItemPress} >
+                <Text style={{ fontSize: 20 }}>{item.resourceName}</Text>
+                <Text>{item.resourceID}</Text>
+              </Pressable>
+            )} />
+          </View>
+          <View style={styles.logoutView}>
+            <Button title="Logout" onPress={() => Alert.alert('Logout', 'Are you readdy to logout?', [{ text: 'No', style: 'default' }, { text: 'Yes', style: 'destructive', onPress: handleLogout }])} />
+          </View>
+        </>
+      ) : (
+        <>
+          <View><Text>Loading Resources</Text></View>
+        </>
+      )}
     </SafeAreaView>
   );
 };
@@ -235,6 +268,9 @@ const styles = StyleSheet.create({
     padding: 10,
     margin: 5,
     opacity: 0.5
+  },
+  logoutView: {
+    flex: 0,
   }
 });
 

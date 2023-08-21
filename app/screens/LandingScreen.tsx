@@ -17,19 +17,17 @@ const LandingScreen = ({ navigation }) => {
   const { width, height } = useWindowDimensions();
 
   useEffect(() => {
-    if (!desiredBssids) {
-      getBssids().then(resp => {
-        setDesiredBssids(resp);
-      });
-    }
     if (token) {
       applicationStore.update(applicationState => {
         applicationState.userToken = undefined;
       });
     }
+    if (!desiredBssids) {
+      getBssids().then(resp => {
+        setDesiredBssids(resp);
+      });
+    }
   }, []);
-
-  console.log(token);
 
   useEffect(() => {
     if (desiredBssids) {
@@ -39,7 +37,7 @@ const LandingScreen = ({ navigation }) => {
     }
   }, [desiredBssids]);
 
-  const navigateToUpdatePassword = () => navigation.push("NewPasswordScreen");
+  const navigateToUpdatePassword = () => navigation.push("NewPasswordScreen", { username });
 
   const doSignIn = useCallback(async () => {
     if (username && password) {

@@ -11,17 +11,17 @@ export const login = async (username: string, password: string): Promise<APIResp
     });
 
     const responseBody = await response.json();
+
     return responseBody;
 };
 
-export const setPassword = async (token: string, oldPassword: string, newPassword: string): Promise<APIResponse> => {
+export const setPassword = async (username: string, oldPassword: string, newPassword: string): Promise<APIResponse> => {
     const response = await fetch(`${BASE_URL}/set_password`, {
         headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Content-Type': 'application/json'
         },
         method: 'POST',
-        body: JSON.stringify({ 'oldPassword': oldPassword, 'newPassword': newPassword }),
+        body: JSON.stringify({ 'employeeID': username, 'oldPassword': oldPassword, 'newPassword': newPassword }),
     });
 
     const responseBody = await response.json();
