@@ -224,7 +224,11 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeAreaViewContainer}>
-      {resources.length !== 0 ? (
+      {isGettingResources ? (
+        <>
+          <View><Text>Loading Resources</Text></View>
+        </>
+      ) : (
         <>
           <View style={styles.documentListContainer}>
             <FlatList data={resources} renderItem={({ item }) => (
@@ -237,10 +241,6 @@ const HomeScreen = ({ navigation }) => {
           <View style={styles.logoutView}>
             <Button title="Logout" onPress={() => Alert.alert('Logout', 'Are you readdy to logout?', [{ text: 'No', style: 'default' }, { text: 'Yes', style: 'destructive', onPress: handleLogout }])} />
           </View>
-        </>
-      ) : (
-        <>
-          <View><Text>Loading Resources</Text></View>
         </>
       )}
     </SafeAreaView>
