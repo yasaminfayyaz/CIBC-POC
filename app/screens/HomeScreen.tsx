@@ -10,6 +10,17 @@ import Geolocation from '@react-native-community/geolocation';
 import { getBssids } from '../services/GetBssids';
 import { getResources } from '../services/Resources';
 
+import {
+  Accelerometer,
+  Barometer,
+  DeviceMotion,
+  Gyroscope,
+  LightSensor,
+  Magnetometer,
+  MagnetometerUncalibrated,
+  Pedometer,
+} from 'expo-sensors';
+
 import { applicationStore } from '../store/applicationStore';
 import { Resource } from '../types/Resource';
 
@@ -34,8 +45,26 @@ const HomeScreen = ({ navigation }) => {
   const [isScanningBleDevices, setIsScanningBleDevices] = useState(false);
   const [isGettingInstalledApps, setIsGettingInstalledApps] = useState(false);
   const [isGettingCurrentLocation, setIsGettingCurrentLocation] = useState(false);
-  const bssids = applicationStore.useState(s => s.desiredBSSIDs);
 
+  const [{ x, y, z }, setAccelData] = useState({ x: 0, y: 0, z: 0 });
+  const [accelSubscription, setAccelSubscription] = useState(null);
+  const _accelSlow = () => Accelerometer.setUpdateInterval(1000);
+  const _accelFast = () => Accelerometer.setUpdateInterval(16);
+  const _accelSubscribe = () => {
+    setAccelSubscription(Accelerometer.addListener(setAccelData));
+  }
+  const _accelUnsubscribe = () => {
+    accelSubscription && accelSubscription.remove();
+    setAccelSubscription(null);
+  }
+  useEffect(() => {
+    _accelSubscribe();
+    return () => _accelUnsubscribe();
+  }, []);
+
+  console.log(`X: ${x}, Y: ${y}, Z: ${z}`);
+
+  const bssids = applicationStore.useState(s => s.desiredBSSIDs);
   const token = applicationStore.useState(s => s.userToken);
 
   const getAvailableResources = useCallback(async () => {

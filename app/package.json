@@ -22,7 +22,10 @@
     "react-native-launcher-kit": "^1.0.4",
     "react-native-safe-area-context": "^4.7.1",
     "react-native-screens": "^3.22.1",
-    "react-native-wifi-reborn": "^4.8.3"
+    "react-native-wifi-reborn": "^4.8.3",
+    "expo": "^49.0.0",
+    "expo-constants": "~14.4.2",
+    "expo-sensors": "~12.3.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
