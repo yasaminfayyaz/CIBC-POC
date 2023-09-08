@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Button, Text, TextInput, View, Alert, useWindowDimensions } from 'react-native';
 import { getBssids } from '../services/GetBssids';
 import { applicationStore } from '../store/applicationStore';
@@ -13,6 +13,7 @@ const LandingScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [isDoingSignIn, setIsDoingSignIn] = useState(false);
   const [desiredBssids, setDesiredBssids] = useState<Array<BSSID>>();
+  const passswdRef = useRef();
 
   const { width, height } = useWindowDimensions();
 
@@ -76,6 +77,9 @@ const LandingScreen = ({ navigation }) => {
           autoComplete='off'
           autoCorrect={false}
           style={{ borderColor: 'black', borderWidth: 0.5, width: width * 40 / 100, textAlign: 'center', height: height * 5 / 100, marginVertical: 5 }}
+          returnKeyType='next'
+          onSubmitEditing={() => { passswdRef.current.focus() }}
+          blurOnSubmit={false}
         />
         <TextInput
           onChangeText={setPassword}
@@ -86,6 +90,7 @@ const LandingScreen = ({ navigation }) => {
           autoCorrect={false}
           secureTextEntry={true}
           style={{ borderColor: 'black', borderWidth: 0.5, width: width * 40 / 100, textAlign: 'center', height: height * 5 / 100, marginVertical: 5 }}
+          ref={passswdRef}
         />
         <Button
           title="Submit"
