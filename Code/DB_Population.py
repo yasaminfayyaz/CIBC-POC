@@ -54,9 +54,51 @@ def resourceData(db, numResources):
         db.insert(query, vals)
         id = id + 1
 
+def trustAttributes(db):
+    # Get all employee IDs and their clearance levels
+    employees = db.query("SELECT employeeID, initSecClearance FROM Employee")
+
+    # Iterate through employees and set default values based on clearance level
+    for employee in employees:
+        clearance = employee["initSecClearance"]
+        default_value = 0.5  # Default for "Unclassified"
+
+        if clearance == "Top Secret":
+            default_value = 0.9
+        elif clearance == "Secret":
+            default_value = 0.8
+        elif clearance == "Confidential":
+            default_value = 0.7
+        elif clearance == "Restricted":
+            default_value = 0.6
+
+        # Create an SQL query to insert the attributes into the TrustAttributes table
+        query = """
+        INSERT INTO TrustAttributes (
+            employeeID,
+            INSTALLED_APPS_SAFE,
+            AT_PRIMARY_BRANCH,
+            LOCATION_TRUSTED,
+            DEVICE_REGISTERED,
+            WORK_HOURS,
+            SUFFICIENT_CLEARANCE,
+            NOT_EMULATOR,
+            LOCATION_NOT_MOCKED,
+            BRAND_SAFE,
+            APP_NOT_JUST_INSTALLED,
+            PIN_OR_FINGERPRINT_SET
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+
+        values = (employee["employeeID"], default_value, default_value, default_value, default_value, default_value, default_value, default_value, default_value, default_value, default_value, default_value)
+
+        # Insert the attributes into the TrustAttributes table
+        db.insert(query, values)
+
+
 if __name__ == '__main__':
-    db_employee = Database("AP_Info")
-    employeeData(db_employee, 100)
+    db_employee = Database("Employees")
+    trustAttributes(db_employee)
     db_employee.con.close()
 
 

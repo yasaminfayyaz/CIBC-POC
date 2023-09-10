@@ -136,8 +136,15 @@ def isDeviceBrandUnsafe(brand):
         print(f"An error occurred: {e}")
         raise e
 
+def wasAppJustInstalled(firstInstallTime):
+    try:
+        # If first install time (in milliseconds) is less than 1 hour ago, the app was just installed, return True
+        return firstInstallTime <= 3600000
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        raise e
 
-    finally:
-        db.con.close()
+
+
 
 

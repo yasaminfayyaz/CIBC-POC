@@ -1,8 +1,9 @@
 from flask import Flask, request, jsonify
 import bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-from utils import indoorLocation, stringSecLabel_to_int
-from booleanChecks import areInstalledAppsSafe, isAtPrimaryBranch, isAtTrustedLocation, isRegisteredDevice, isWorkHours, isClearanceSufficient, isDeviceBrandUnsafe
+from utils import indoorLocation, stringSecLabel_to_int, get_base_rate, update_base_rate
+from booleanChecks import areInstalledAppsSafe, isAtPrimaryBranch, isAtTrustedLocation, isRegisteredDevice, isWorkHours, isClearanceSufficient, isDeviceBrandUnsafe, wasAppJustInstalled
+from trustEngine import build_quadruple, currentClearance
 from pyxacml_sdk.core import sdk
 from pyxacml_sdk.model.attribute import Attribute
 from pyxacml_sdk.model.attribute_ids import Attribute_ID
@@ -37,46 +38,94 @@ def access_request():
         # Building + adding XACML attributes using the data from the request, derived, and stored attributes
 
         # Dynamic attributes
+        # Weights for each attribute, used to calculate the trust score
+        quadruples = []
+        weights = {
+            "INSTALLED_APPS_SAFE": 0.9,
+            "AT_PRIMARY_BRANCH": 0.8,
+            "LOCATION_TRUSTED": 0.7,
+            "DEVICE_REGISTERED": 1,
+            "WORK_HOURS": 0.5,
+            "SUFFICIENT_CLEARANCE": 0.8,
+            "NOT_EMULATOR": 1,
+            "LOCATION_NOT_MOCKED": 1,
+            "BRAND_SAFE": 0.8,
+            "PIN_OR_FINGERPRINT_SET": 1,
+            "APP_NOT_JUST_INSTALLED": 0.5
+        }
         try:
             # Checks if any of the installed apps on the employee's phone are blacklisted due to potential security risks
-            app_safety_status = Attribute(Attribute_ID.INSTALLED_APPS_SAFE, areInstalledAppsSafe(data["installedApps"]), Datatype.BOOLEAN)
+
+            INSTALLED_APPS_SAFE = areInstalledAppsSafe(data["installedApps"])
+            app_safety_status = Attribute(Attribute_ID.INSTALLED_APPS_SAFE, INSTALLED_APPS_SAFE, Datatype.BOOLEAN)
             sdk.add_attribute(Category_ID.subjectCat, app_safety_status)
+
+            # Pass to trust engine
+            quadruples.append(build_quadruple(INSTALLED_APPS_SAFE, weights["INSTALLED_APPS_SAFE"], get_base_rate("INSTALLED_APPS_SAFE")))
+            update_base_rate(employeeID, "INSTALLED_APPS_SAFE", INSTALLED_APPS_SAFE)
         except:
-            pass
+            quadruples.append(build_quadruple(None, weights["INSTALLED_APPS_SAFE"], get_base_rate("INSTALLED_APPS_SAFE")))
 
         try:
             # Checks if the employee is at their primary branch
-            at_primary_branch = Attribute(Attribute_ID.AT_PRIMARY_BRANCH, isAtPrimaryBranch(employeeID, data["CurrentLocationCoords"]["latitude"], data["CurrentLocationCoords"]["longitude"]), Datatype.BOOLEAN)
+            AT_PRIMARY_BRANCH = isAtPrimaryBranch(employeeID, data["CurrentLocationCoords"]["latitude"], data["CurrentLocationCoords"]["longitude"])
+            at_primary_branch = Attribute(Attribute_ID.AT_PRIMARY_BRANCH, AT_PRIMARY_BRANCH, Datatype.BOOLEAN)
             sdk.add_attribute(Category_ID.subjectCat, at_primary_branch)
+
+            # Pass to trust engine
+            quadruples.append(build_quadruple(AT_PRIMARY_BRANCH, weights["AT_PRIMARY_BRANCH"], get_base_rate("AT_PRIMARY_BRANCH")))
+            update_base_rate(employeeID, "AT_PRIMARY_BRANCH", AT_PRIMARY_BRANCH)
         except:
-            pass
+            quadruples.append(
+                build_quadruple(None, weights["AT_PRIMARY_BRANCH"], get_base_rate("AT_PRIMARY_BRANCH")))
 
         try:
             # Checks if the employee is at a trusted location
-            location_trusted = Attribute(Attribute_ID.LOCATION_TRUSTED, isAtTrustedLocation(employeeID), Datatype.BOOLEAN)
+            LOCATION_TRUSTED = isAtTrustedLocation(employeeID)
+            location_trusted = Attribute(Attribute_ID.LOCATION_TRUSTED, LOCATION_TRUSTED, Datatype.BOOLEAN)
             sdk.add_attribute(Category_ID.subjectCat, location_trusted)
+
+            # Pass to trust engine
+            quadruples.append(build_quadruple(LOCATION_TRUSTED, weights["LOCATION_TRUSTED"], get_base_rate("LOCATION_TRUSTED")))
+            update_base_rate(employeeID, "LOCATION_TRUSTED", LOCATION_TRUSTED)
         except:
-            pass
+            quadruples.append(build_quadruple(None, weights["LOCATION_TRUSTED"], get_base_rate("LOCATION_TRUSTED")))
 
         try:
             # Checks if the employee's device is registered
+            DEVICE_REGISTERED = isRegisteredDevice(employeeID, data["DeviceInfo"]["uniqueId"])
 
-            device_registered = Attribute(Attribute_ID.DEVICE_REGISTERED, isRegisteredDevice(employeeID, data["DeviceInfo"]["uniqueId"]), Datatype.BOOLEAN)
+            device_registered = Attribute(Attribute_ID.DEVICE_REGISTERED, DEVICE_REGISTERED, Datatype.BOOLEAN)
             sdk.add_attribute(Category_ID.subjectCat, device_registered)
+
+            # Pass to trust engine
+            quadruples.append(build_quadruple(DEVICE_REGISTERED, weights["DEVICE_REGISTERED"], get_base_rate("DEVICE_REGISTERED")))
+            update_base_rate(employeeID, "DEVICE_REGISTERED", DEVICE_REGISTERED)
         except:
-            pass
+            quadruples.append(
+            build_quadruple(None, weights["DEVICE_REGISTERED"], get_base_rate("DEVICE_REGISTERED")))
 
         try:
             # Checks if the employee is making the access request during work hours
-            work_hours = Attribute(Attribute_ID.WORK_HOURS, isWorkHours(), Datatype.BOOLEAN)
+            WORK_HOURS = isWorkHours()
+            work_hours = Attribute(Attribute_ID.WORK_HOURS, WORK_HOURS, Datatype.BOOLEAN)
             sdk.add_attribute(Category_ID.environmentCat, work_hours)
+
+            # Pass to trust engine
+            quadruples.append(build_quadruple(WORK_HOURS, weights["WORK_HOURS"], get_base_rate("WORK_HOURS")))
+            update_base_rate(employeeID, "WORK_HOURS", WORK_HOURS)
         except:
-            pass
+            quadruples.append(build_quadruple(None, weights["WORK_HOURS"], get_base_rate("WORK_HOURS")))
 
         try:
             # Check to see if employees in the same indoor location as the one making access requests have equal or higher clearance
-            sufficient_clearance = Attribute(Attribute_ID.SUFFICIENT_CLEARANCE, isClearanceSufficient(employeeID), Datatype.BOOLEAN)
+            SUFFICIENT_CLEARANCE = isClearanceSufficient(employeeID)
+            sufficient_clearance = Attribute(Attribute_ID.SUFFICIENT_CLEARANCE, SUFFICIENT_CLEARANCE, Datatype.BOOLEAN)
             sdk.add_attribute(Category_ID.subjectCat, sufficient_clearance)
+
+            # Pass to trust engine
+            quadruples.append(build_quadruple(SUFFICIENT_CLEARANCE, weights["SUFFICIENT_CLEARANCE"], get_base_rate("SUFFICIENT_CLEARANCE")))
+            update_base_rate(employeeID, "SUFFICIENT_CLEARANCE", SUFFICIENT_CLEARANCE)
         except:
             sufficient_clearance_exists = Attribute(Attribute_ID.SUFFICIENT_CLEARANCE_EXISTS, False, Datatype.BOOLEAN)
             sdk.add_attribute(Category_ID.subjectCat, sufficient_clearance_exists)
@@ -86,10 +135,43 @@ def access_request():
             redflags = data["CurrentLocation"]["mocked"] or not data["DeviceInfo"]["pinOrFingerprintSet"] or data["DeviceInfo"]["emulator"] or isDeviceBrandUnsafe(data["DeviceInfo"]["brand"])
             device_redflags = Attribute(Attribute_ID.DEVICE_REDFLAGS, redflags, Datatype.BOOLEAN)
             sdk.add_attribute(Category_ID.subjectCat, device_redflags)
+
+            # Pass to trust engine
+            LOCATION_NOT_MOCKED = not data["CurrentLocation"]["mocked"]
+            NOT_EMULATOR = not data["DeviceInfo"]["emulator"]
+            BRAND_SAFE = not isDeviceBrandUnsafe(data["DeviceInfo"]["brand"])
+            PIN_OR_FINGERPRINT_SET = data["DeviceInfo"]["pinOrFingerprintSet"]
+
+            quadruples.append(build_quadruple(LOCATION_NOT_MOCKED, weights["LOCATION_NOT_MOCKED"], get_base_rate("LOCATION_NOT_MOCKED")))
+            quadruples.append(build_quadruple(NOT_EMULATOR, weights["NOT_EMULATOR"], get_base_rate("NOT_EMULATOR")))
+            quadruples.append(build_quadruple(BRAND_SAFE, weights["BRAND_SAFE"], get_base_rate("BRAND_SAFE")))
+            quadruples.append(build_quadruple(PIN_OR_FINGERPRINT_SET, weights["PIN_OR_FINGERPRINT_SET"], get_base_rate("PIN_OR_FINGERPRINT_SET")))
+
+            update_base_rate(employeeID, "LOCATION_NOT_MOCKED", LOCATION_NOT_MOCKED)
+            update_base_rate(employeeID, "NOT_EMULATOR", NOT_EMULATOR)
+            update_base_rate(employeeID, "BRAND_SAFE", BRAND_SAFE)
+            update_base_rate(employeeID, "PIN_OR_FINGERPRINT_SET", PIN_OR_FINGERPRINT_SET)
+        except:
+            quadruples.append(build_quadruple(None, weights["LOCATION_NOT_MOCKED"], get_base_rate("LOCATION_NOT_MOCKED")))
+            quadruples.append(build_quadruple(None, weights["NOT_EMULATOR"], get_base_rate("NOT_EMULATOR")))
+            quadruples.append(build_quadruple(None, weights["BRAND_SAFE"], get_base_rate("BRAND_SAFE")))
+            quadruples.append(build_quadruple(None, weights["PIN_OR_FINGERPRINT_SET"], get_base_rate("PIN_OR_FINGERPRINT_SET")))
+
+
+
+        try:
+            APP_NOT_JUST_INSTALLED = not wasAppJustInstalled(data["DeviceInfo"]["firstInstallTime"])
+            quadruples.append(build_quadruple(APP_NOT_JUST_INSTALLED, weights["APP_NOT_JUST_INSTALLED"], get_base_rate("APP_NOT_JUST_INSTALLED")))
+            update_base_rate(employeeID, "APP_NOT_JUST_INSTALLED", APP_NOT_JUST_INSTALLED)
+        except:
+            quadruples.append(None, weights["APP_NOT_JUST_INSTALLED"], get_base_rate("APP_NOT_JUST_INSTALLED"))
+
+        try:
+            # Employee's current clearance which be dynamically updated based on trust score, possible values: {Top Secret, Secret, Confidential, Restricted, Unclassified}
+            employee_current_clearance = Attribute(Attribute_ID.EMPLOYEE_CURRENT_CLEARANCE, stringSecLabel_to_int(currentClearance(quadruples)), Datatype.INTEGER)
+            sdk.add_attribute(Category_ID.subjectCat, employee_current_clearance)
         except:
             pass
-        #  Employee's current clearance which be dynamically updated based on trust score, possible values: {Top Secret, Secret, Confidential, Restricted, Unclassified}
-        #TODO: GET CURRENT CLEARANCE
 
         # Static employee attributes
         try:
@@ -136,6 +218,9 @@ def access_request():
             sdk.add_attribute(Category_ID.actionCat, action_id)
         except:
             pass
+
+
+
 
         # Asking for Authorization
         decision, raw = sdk.get_authz()
@@ -187,15 +272,15 @@ def login():
         # if login count is 0, check if password is the same as default (DOB)
         if login_count == 0:
             if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
-                access_token = create_access_token(identity=stored_employeeID)
-                return jsonify(message="Redirect to create new password", code=1000, token=access_token), 200
+                return jsonify(message="Redirect to create new password", code=1000), 200
             else:
                 return jsonify(message="Invalid password", code=1001), 401
 
         # if login count is not 0, check password against stored hash
         elif bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
             db.query("UPDATE Password SET loginCount = loginCount + 1 WHERE employeeID=%s", (employeeID,))
-            return jsonify(message="Login successful", code=0), 200
+            access_token = create_access_token(identity=stored_employeeID)
+            return jsonify(message="Login successful", code=0, token=access_token), 200
         else:
             return jsonify(message="Invalid password", code=1001), 401
     else:
@@ -203,13 +288,11 @@ def login():
     db.con.close()
 
 
+# This route is no longer protected
 @app.route("/set_password", methods=["POST"])
-@jwt_required()
 def set_password():
     """
-    This function handles the password setting process. It expects a POST request with a JSON body containing 'oldPassword', and 'newPassword'.
-
-    The function requires the user's JWT token in the 'Authorization' header of the request.
+    This function handles the password setting process. It expects a POST request with a JSON body containing 'employeeID', 'oldPassword', and 'newPassword'.
 
     The function checks the provided oldPassword against the database.
 
@@ -219,24 +302,29 @@ def set_password():
     """
     data = request.get_json()
 
+    # get the employeeID from the request body
+    employeeID = data["employeeID"]
     oldPassword = data["oldPassword"]
     newPassword = data["newPassword"]
-
-    # get the employeeID from the JWT token
-    employeeID = get_jwt_identity()
 
     db = Database("Employees")
     result = db.query("SELECT * FROM Password WHERE employeeID=%s", (employeeID,))
 
     if result:
         stored_hash = result[0]["PasswordHash"]
+        login_count = result[0]["loginCount"]
 
         # check if oldPassword  matches stored hash
         if bcrypt.checkpw(oldPassword.encode('utf-8'), stored_hash.encode('utf-8')):
             # if the oldPassword is correct, salt and hash the newPassword and update the database
             salt = bcrypt.gensalt()
             new_hash = bcrypt.hashpw(newPassword.encode('utf-8'), salt)
-            db.query("UPDATE Password SET PasswordHash = %s WHERE employeeID = %s", (new_hash, employeeID))
+
+            if login_count != 0:
+                db.insert("UPDATE Password SET PasswordHash = %s WHERE employeeID = %s", (new_hash, employeeID))
+            else:
+                db.insert("UPDATE Password SET PasswordHash = %s, loginCount = %s + 1 WHERE employeeID = %s", (new_hash, login_count, employeeID))
+
             return jsonify(message="Password updated successfully", code=0), 200
         else:
             return jsonify(message="Invalid old password", code=1001), 401
