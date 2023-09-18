@@ -1,3 +1,6 @@
+/**
+ * Defines a helper object that represents location provider.
+ */
 export interface LocationProvider {
     fused: boolean;
     network: boolean;
@@ -5,12 +8,19 @@ export interface LocationProvider {
     passive: boolean;
 }
 
+/**
+ * Defines a helper object that represents power state information.
+ */
 export interface PowerState {
     lowPowerMode: boolean;
     batteryLevel: number;
     batteryState: string;
 }
 
+/**
+ * Defines an object that represents device information.
+ * Additional data that is not being used is commented out.
+ */
 export interface DeviceInfo {
     applicationName: string;
     brand: string;

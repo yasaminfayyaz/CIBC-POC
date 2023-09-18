@@ -1,3 +1,7 @@
+/**
+ * Defines a helper object that represents detailed device networking information.
+ * Additional data that is not being used is commented out.
+ */
 export interface DeviceNetworkInfoDetails {
     bssid: string; // of the current network
     // frequency: number;
@@ -11,6 +15,10 @@ export interface DeviceNetworkInfoDetails {
     // txLinkSpeed: number;
 }
 
+/**
+ * Defines an object that represents the device's networking information.
+ * Additional data that is not being used is commented out.
+ */
 export interface DeviceNetworkInfo {
     details: DeviceNetworkInfoDetails;
     isConnected: boolean;
