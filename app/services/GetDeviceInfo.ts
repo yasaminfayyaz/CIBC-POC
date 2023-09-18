@@ -1,3 +1,6 @@
+/**
+ * Import required packages.
+ */
 import {
     getApplicationName,
     getAvailableLocationProviders,
@@ -37,6 +40,10 @@ import {
     isTablet,
 } from 'react-native-device-info';
 
+/**
+ * Defines and exports a function used to get device data.
+ * @returns Returns an object containing device data gathered synchronously.
+ */
 export const getSyncDeviceInfo = () => {
     const applicationName = getApplicationName();
     const brand = getBrand();
@@ -69,6 +76,10 @@ export const getSyncDeviceInfo = () => {
     };
 };
 
+/**
+ * Defines and exports a function used to get device data.
+ * @returns Returns an object containing device data that has to be gathered asynchronously.
+ */
 export const getAsyncDeviceInfo = () => {
     const availableApplicationProviders = getAvailableLocationProviders();
     const buildId = getBuildId();
