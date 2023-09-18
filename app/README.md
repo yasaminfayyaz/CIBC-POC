@@ -77,3 +77,16 @@ To learn more about React Native, take a look at the following resources:
 - [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
 - [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
 - [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+
+# Third-party Packages Used
+
+- [Geolocation](https://www.npmjs.com/package/@react-native-community/geolocation) - provides geolocation capabilities to the app
+- [Netinfo](https://www.npmjs.com/package/@react-native-community/netinfo) - allows accessing information on connection type and connection quality
+- [React Navigation](https://www.npmjs.com/package/@react-navigation/native) - enables creation of different screens
+- [Stack Navigation](https://www.npmjs.com/package/@react-navigation/native-stack) - enables stack navigation of different screens
+- [Pullstate](https://lostpebble.github.io/pullstate/) - easy global application state management
+- [Ble Manager](https://www.npmjs.com/package/react-native-ble-manager?activeTab=readme) - enables bluetooth capabilities
+- [Device Info](https://www.npmjs.com/package/react-native-device-info) - provides access to several device-specific information
+- [Launcher Kit](https://www.npmjs.com/package/react-native-launcher-kit) - used in this project to get list of currently installed apps
+- [Wifi Reborn](https://www.npmjs.com/package/react-native-wifi-reborn) - used to get list of nearby access points and a few metrics on them
+- [Expo Sensors](https://www.npmjs.com/package/expo-sensors) - enables easy access to device sensors (gyroscope, accelerometer, etc.)
