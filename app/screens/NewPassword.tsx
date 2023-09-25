@@ -1,7 +1,11 @@
+/**
+ * This screen simply prompts the user for their old and new passwords if they are required.
+ * 
+ * Also, it performs the REST request passing the employee ID, old and new passwords to the API.
+ */
 import * as React from 'react';
 import { useState, useCallback } from 'react';
 import { Button, Text, TextInput, View, Alert, useWindowDimensions, StyleSheet } from 'react-native';
-import { applicationStore } from '../store/applicationStore';
 import { setPassword } from '../services/User';
 import { Loader } from '../components/Loader/Loader';
 

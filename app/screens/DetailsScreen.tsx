@@ -1,3 +1,8 @@
+/**
+ * This screen is not used in the project.
+ * It is a showcase of how nagivation between screens can be used.
+ */
+
 import { Button, Text, View } from 'react-native';
 
 const DetailsScreen = ({ route, navigation }) => {

@@ -1,5 +1,15 @@
+/**
+ * This screen is the main screen of the project.
+ * This component is used to collect contextual information, including device info, network info, etc.
+ * 
+ * Additionally, this component also queries the API for the acceptable access points, which are used
+ * to determine indoor location.
+ * 
+ * Finally, this component also queries the API for the available resources one will have access to,
+ * based on the collected contextual information.
+ */
 import React, { useState, useCallback, useEffect } from 'react';
-import { Button, View, Text, Modal, NativeModules, NativeEventEmitter, SafeAreaView, FlatList, StyleSheet, Pressable, Alert } from 'react-native';
+import { Button, View, Text, NativeModules, NativeEventEmitter, SafeAreaView, FlatList, StyleSheet, Pressable, Alert } from 'react-native';
 import { getSyncDeviceInfo, getAsyncDeviceInfo } from '../services/GetDeviceInfo';
 import { PermissionsAndroid } from 'react-native';
 import WifiManager from 'react-native-wifi-reborn';

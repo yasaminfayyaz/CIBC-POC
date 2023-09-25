@@ -1,3 +1,12 @@
+/**
+ * This screen is the landing screen of the project, where the user will perform the sign in action.
+ * 
+ * A logic is implemented to force the user to set up a new password when they sign in for the
+ * first time.
+ * 
+ * This screen also checks for the token received upon sign in, to skip to the main screen in case
+ * a token is found in the application store.
+ */
 import * as React from 'react';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Button, Text, TextInput, View, Alert, useWindowDimensions } from 'react-native';
