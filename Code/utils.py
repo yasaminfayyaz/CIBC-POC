@@ -2,6 +2,28 @@ from DB_Operations import Database
 import numpy as np
 
 def indoorLocation(BSSIDs, RSSIs, employeeID):
+    """
+     This function uses the Wi-Fi fingerprinting technique where the signal strengths associated with
+     multiple access points are stored as fingerprints for different indoor locations. The current RSSI readings
+     from the user's phone are then compared with these fingerprints to determine the most probable location.
+
+     Parameters:
+     - BSSIDs (list): A list of MAC addresses of Wi-Fi access points.
+     - RSSIs (list): A list of RSSIs corresponding to the access points.
+     - employeeID (str/int): The unique identifier for the employee.
+
+     Returns:
+     - str: The name of the location where the employee is currently located.
+
+     Process:
+     1. Extracts the MAC addresses of the access points and corresponding RSSIs.
+     2. Connects to the "LocationReference" database to fetch reference RSSIs for known indoor locations.
+     3. Calculates the Euclidean distance between the live RSSI readings and the reference RSSIs for each location.
+     4. Determines the location with the minimum distance as the most probable current location of the employee.
+     5. Updates the "Employees" database with the determined location for the given employeeID.
+     6. Returns the name of the determined location.
+
+     """
     try:
         BSSID1, BSSID2, BSSID3 = BSSIDs
         AP1_RSSI_User = abs(RSSIs[0])
@@ -42,11 +64,32 @@ def indoorLocation(BSSIDs, RSSIs, employeeID):
         db_employee.con.close()
 
 def stringSecLabel_to_int(label):
+    """
+       Converts a security label string to its corresponding integer value.
+
+       Parameters:
+       - label (str): The security label as a string.
+
+       Returns:
+       - int: The integer value corresponding to the security label.
+
+       """
     mapping = {"Top Secret" : 5, "Secret" : 4, "Confidential" : 3, "Restricted" : 2, "Unclassified" : 1}
     return mapping[label]
 
 
 def get_base_rate(employeeID, attribute_id):
+    """
+        Retrieves the base rate of a specific attribute for a given employee.
+
+        Parameters:
+        - employeeID (str/int): The unique identifier for the employee.
+        - attribute_id (str): The ID of the attribute for which the base rate is to be fetched.
+
+        Returns:
+        - float: The base rate of the specified attribute for the given employee.
+
+        """
     db = Database("Employees")
     base_rate_query = f"SELECT {attribute_id} FROM TrustAttributes WHERE employeeID = %s"
     result = db.query(base_rate_query, (employeeID,))[0][attribute_id]
@@ -55,6 +98,21 @@ def get_base_rate(employeeID, attribute_id):
 
 
 def update_base_rate(employeeID, attribute_id, new_value):
+    """
+       Updates the base rate of a specific attribute for a given employee.
+
+       Parameters:
+       - employeeID (str/int): The unique identifier for the employee.
+       - attribute_id (str): The ID of the attribute for which the base rate is to be updated.
+       - new_value (bool): The new value (True/False) to be considered for updating the base rate.
+
+       Process:
+       1. Converts the boolean new_value to its corresponding numerical value.
+       2. Fetches the current base rate for the specified attribute.
+       3. Calculates the average of the current base rate and the new numerical value.
+       4. Updates the base rate in the database with the calculated average.
+       5. Closes the database connection.
+       """
     # Convert boolean values to numerical values
     new_value_numerical = 1 if new_value else 0
 
@@ -68,7 +126,8 @@ def update_base_rate(employeeID, attribute_id, new_value):
 
     # Update the base rate in the database
     update_base_rate_query = f"UPDATE TrustAttributes SET {attribute_id} = %s WHERE employeeID = %s"
-    db.insert(update_base_rate_query, (updated_base_rate, employeeID))
+    db.update(update_base_rate_query, (updated_base_rate, employeeID))
 
     # Close the database connection
     db.con.close()
+

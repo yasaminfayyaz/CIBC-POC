@@ -29,6 +29,23 @@ sdk = sdk.Sdk(config_file_path, domain_id)
 @app.route("/", methods=["POST"])
 @jwt_required()
 def access_request():
+    """
+       Endpoint to handle access requests based on various dynamic and static attributes of employee and resource.
+
+       Parameters:
+       - Uses JSON payload from the request which contains information about the employee, their device, and the resource they are trying to access.
+
+       Returns:
+       - JSON response indicating whether access is granted, denied, or if there was an error.
+
+       Process:
+       1. Extracts necessary data from the request.
+       2. Computes various trust attributes based on the provided data and stored information.
+       3. Sends the computed attributes to the Policy Decision Point (PDP) to request an authorization decision.
+       4. Receives the authorization decision from the PDP.
+       5. Returns the authorization decision to the client.
+
+    """
     try:
         data = request.get_json()
         employeeID = get_jwt_identity()
@@ -321,9 +338,9 @@ def set_password():
             new_hash = bcrypt.hashpw(newPassword.encode('utf-8'), salt)
 
             if login_count != 0:
-                db.insert("UPDATE Password SET PasswordHash = %s WHERE employeeID = %s", (new_hash, employeeID))
+                db.update("UPDATE Password SET PasswordHash = %s WHERE employeeID = %s", (new_hash, employeeID))
             else:
-                db.insert("UPDATE Password SET PasswordHash = %s, loginCount = %s + 1 WHERE employeeID = %s", (new_hash, login_count, employeeID))
+                db.update("UPDATE Password SET PasswordHash = %s, loginCount = %s + 1 WHERE employeeID = %s", (new_hash, login_count, employeeID))
 
             return jsonify(message="Password updated successfully", code=0), 200
         else:
