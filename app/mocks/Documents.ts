@@ -1,3 +1,6 @@
+/**
+ * Simple mock to render on the main screen before the API call was implemented.
+ */
 import { Document } from '../types/Document';
 
 export const DocumentListMock = Array<Document>(
