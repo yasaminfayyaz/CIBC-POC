@@ -3,6 +3,22 @@ from DB_Operations import Database
 from datetime import datetime
 
 def isAtPrimaryBranch(employeeID, currentLat, currentLong):
+    """
+       Determines if an employee is at their primary branch.
+
+       Parameters:
+       - employeeID: The unique identifier for the employee.
+       - currentLat: The current latitude of the employee.
+       - currentLong: The current longitude of the employee.
+
+       Returns:
+       - True if the employee is at their primary branch, False otherwise.
+
+       Process:
+       - Queries the database to get the primary branch location for the given employee.
+       - Calculates the distance between the current location and the primary branch location.
+       - If the distance is within a specified radius, the function returns True, otherwise False.
+       """
     try:
         db = Database("Employees")
         radius = 0.1
@@ -21,6 +37,20 @@ def isAtPrimaryBranch(employeeID, currentLat, currentLong):
         db.con.close()
 
 def isAtTrustedLocation(employeeID):
+    """
+    Determines if an employee is at a trusted indoor location.
+
+    Parameters:
+    - employeeID: The unique identifier for the employee.
+
+    Returns:
+    - True if the employee is at a trusted indoor location, False otherwise.
+
+    Process:
+    - Queries the database to fetch the location ID associated with the employee.
+    - Checks if the location is marked as trusted in the reference database.
+    """
+
     try:
         db_employee = Database("Employees")
         locationID = db_employee.query("SELECT locationID FROM EmployeeLocation WHERE employeeID = %s", (employeeID,))[0]["locationID"]
@@ -37,6 +67,20 @@ def isAtTrustedLocation(employeeID):
 
 
 def isRegisteredDevice(employeeID, currentDeviceID):
+    """
+        Checks if the current device is registered to the employee.
+
+        Parameters:
+        - employeeID: The unique identifier for the employee.
+        - currentDeviceID: The unique ID of the device currently being used.
+
+        Returns:
+        - True if the device is registered to the employee, False otherwise.
+
+        Process:
+        - Queries the database to get the registered device ID for the given employee.
+        - Compares the registered device ID with the current device ID.
+        """
     try:
         db = Database("Employees")
         registeredDeviceID = db.query("SELECT deviceID FROM Device WHERE employeeID = %s", (employeeID,))
@@ -53,6 +97,20 @@ def isRegisteredDevice(employeeID, currentDeviceID):
 
 
 def isWorkHours():
+    """
+       Determines if the current time falls within work hours.
+
+       Parameters:
+       - None
+
+       Returns:
+       - True if the current time is within work hours, False otherwise.
+
+       Process:
+       - Checks the current day of the week.
+       - Defines the start and end of work hours.
+       - Compares the current time with the defined work hours.
+       """
     now = datetime.now()
 
     # Check if today is a weekday (0 = Monday, 6 = Sunday)
@@ -70,6 +128,21 @@ def isWorkHours():
         return False
 
 def isClearanceSufficient(employeeID):
+    """
+       Determines if all employees in the same indoor location as the current employee have the same or higher security clearance.
+
+       Parameters:
+       - employeeID: The unique identifier for the employee.
+
+       Returns:
+       - True if all employees in the same location have the same or higher security clearance as the current employee, False otherwise.
+
+       Process:
+       - Queries the database to get the security clearance of the given employee.
+       - Fetches the location of the given employee.
+       - Retrieves the security clearances of all other employees in the same location.
+       - Compares the security clearance of each employee in the location with the current employee's clearance.
+       """
     try:
         db = Database("Employees")
         clearanceRanking = {"Unclassified": 0, "Restricted": 1, "Confidential": 2, "Secret": 3, "Top Secret": 4}
@@ -93,6 +166,19 @@ def isClearanceSufficient(employeeID):
 
 
 def areInstalledAppsSafe(apps_on_phone):
+    """
+        Determines if the apps installed on a phone are safe.
+
+        Parameters:
+        - apps_on_phone: List of apps installed on the phone.
+
+        Returns:
+        - True if all apps are safe, False if any app is blacklisted.
+
+        Process:
+        - Iterates through the apps on the phone.
+        - Queries the database to check if any app is blacklisted.
+        """
     try:
         db = Database("SecurityRestrictions")
 
@@ -120,6 +206,18 @@ def areInstalledAppsSafe(apps_on_phone):
 
 
 def isDeviceBrandUnsafe(brand):
+    """
+        Checks if a device brand is considered unsafe.
+
+        Parameters:
+        - brand: The brand name of the device.
+
+        Returns:
+        - True if the brand is blacklisted, False otherwise.
+
+        Process:
+        - Queries the database to check if the brand name is blacklisted.
+        """
     try:
         db = Database("SecurityRestrictions")
         # Query the database to see if the brand name is in the blacklist
@@ -137,6 +235,18 @@ def isDeviceBrandUnsafe(brand):
         raise e
 
 def wasAppJustInstalled(firstInstallTime):
+    """
+        Determines if an app was recently installed.
+
+        Parameters:
+        - firstInstallTime: The installation time of the app in milliseconds.
+
+        Returns:
+        - True if the app was installed within the last hour, False otherwise.
+
+        Process:
+        - Compares the first installation time with the current time.
+        """
     try:
         # If first install time (in milliseconds) is less than 1 hour ago, the app was just installed, return True
         return firstInstallTime <= 3600000

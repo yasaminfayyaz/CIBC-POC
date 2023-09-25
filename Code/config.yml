@@ -1,3 +1,6 @@
+"""
+This file contains the configuration for the PDP.
+"""
 pdp:
     host: "ec2-3-145-63-120.us-east-2.compute.amazonaws.com"
     port: 8080

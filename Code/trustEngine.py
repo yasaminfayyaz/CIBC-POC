@@ -1,4 +1,16 @@
 def build_quadruple(attribute_value, weight, base_rate):
+    """
+       Constructs a quadruple representing belief, disbelief, uncertainty, and base rate for a given attribute.
+
+       Parameters:
+       - attribute_value: The value of the attribute (True, False, or None).
+       - weight: The weight assigned to the attribute.
+       - base_rate: The base rate of the attribute.
+
+       Returns:
+       - A tuple (belief, disbelief, uncertainty, base rate) based on the attribute value.
+
+       """
     # If attribute exists and is True, belief is 1
     if attribute_value is True:
         return (1 * weight, 0, 0, base_rate)
@@ -11,6 +23,25 @@ def build_quadruple(attribute_value, weight, base_rate):
 
 
 def currentClearance(quadruples, base_rate_weight=0.75, uncertainty_weight=0.5):
+    """
+       Calculates the current clearance level based on the provided quadruples.
+       The trust score is a measure of how much the system trusts an entity based on various attributes.
+       The clearance level is determined by thresholding the trust score.
+
+       Parameters:
+       - quadruples: A list of tuples, each representing belief, disbelief, uncertainty, and base rate for an attribute.
+       - base_rate_weight: The weight assigned to the base rate when calculating the trust score.
+       - uncertainty_weight: The weight assigned to uncertainty when calculating the trust score.
+
+       Returns:
+       - A string representing the clearance level ("Top Secret", "Secret", "Confidential", "Restricted", or "Unclassified").
+
+       Process:
+       1. Calculates the total belief, disbelief, uncertainty, and base rate from the provided quadruples.
+       2. Computes the trust score using a fusion formula.
+       3. Determines the clearance level based on the computed trust score.
+
+    """
     # Calculate total belief, disbelief, and uncertainty (weighted less than disbelief)
     total_belief = sum([q[0] for q in quadruples])
     total_disbelief = sum([q[1] for q in quadruples])

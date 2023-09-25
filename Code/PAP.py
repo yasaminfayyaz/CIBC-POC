@@ -1,4 +1,7 @@
 import requests
+"""
+This script is used to push a XACML policy to the AuthzForce PDP.
+"""
 
 # Define the AuthzForce details
 domain_id = "A0bdIbmGEeWhFwcKrC9gSQ"
