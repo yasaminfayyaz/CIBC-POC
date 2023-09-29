@@ -44,3 +44,24 @@ Contains the ALFA policy, which has been auto-compiled into XACML format. This X
 
 ### PIP Directory
 The directory contains several key elements related to the MySQL Policy Information Point (PIP). It includes Data Definition Language scripts for database structure. There are also image files depicting the Entity-Relationship (ER) diagrams for various databases in addition to their current data.
+
+---
+
+## Hosting Information
+
+### Policy Decision Point (PDP)
+- Hosted on an Amazon EC2 instance running AuthzForce.
+- Already configured and contains the policy.
+- For manual setup and more about AuthzForce, refer to [AuthzForce Documentation](https://github.com/authzforce/server).
+
+### Policy Enforcement Point (PEP)
+- Hosted on PythonAnywhere.
+- Requires all files from the `PEP` directory to be uploaded to the Flask application.
+- For setup instructions, refer to [PythonAnywhere Documentation](https://help.pythonanywhere.com/pages/).
+
+### Policy Information Point (PIP)
+- Hosted on Amazon RDS (SQL).
+- For manual setup, refer to [Amazon RDS Documentation](https://aws.amazon.com/rds/).
+
+**Note:** URLs for accessing these components are provided separately. Sensitive information like passwords is securely shared in a separate file.
+
