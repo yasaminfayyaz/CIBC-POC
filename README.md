@@ -63,5 +63,10 @@ The directory contains several key elements related to the MySQL Policy Informat
 - Hosted on Amazon RDS (SQL).
 - For manual setup, refer to [Amazon RDS Documentation](https://aws.amazon.com/rds/).
 
+### Policy Administration Point (PAP)
+- The PAP.py script can be run from any IDE.
+- Must have access to the policy files for successful operation.
+
+
 **Note:** URLs for accessing these components are provided separately. Sensitive information like passwords is securely shared in a separate file.
 
