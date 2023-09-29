@@ -1,81 +1,83 @@
 /**
  * This screen is the main screen of the project.
  * This component is used to collect contextual information, including device info, network info, etc.
- * 
+ *
  * Additionally, this component also queries the API for the acceptable access points, which are used
  * to determine indoor location.
- * 
+ *
  * Finally, this component also queries the API for the available resources one will have access to,
  * based on the collected contextual information.
  */
-import React, { useState, useCallback, useEffect } from 'react';
-import { Button, View, Text, NativeModules, NativeEventEmitter, SafeAreaView, FlatList, StyleSheet, Pressable, Alert } from 'react-native';
-import { getSyncDeviceInfo, getAsyncDeviceInfo } from '../services/GetDeviceInfo';
-import { PermissionsAndroid } from 'react-native';
-import WifiManager from 'react-native-wifi-reborn';
-import NetInfo from "@react-native-community/netinfo";
-import BleManager, { BleScanCallbackType, BleScanMatchMode, BleScanMode, Peripheral } from 'react-native-ble-manager';
-import { InstalledApps } from 'react-native-launcher-kit';
-import Geolocation from '@react-native-community/geolocation';
-import { getBssids } from '../services/GetBssids';
-import { getResources } from '../services/Resources';
-
+import React, {useState, useCallback, useEffect} from 'react';
 import {
-  Accelerometer,
-  Barometer,
-  DeviceMotion,
-  Gyroscope,
-  LightSensor,
-  Magnetometer,
-  MagnetometerUncalibrated,
-  Pedometer,
-} from 'expo-sensors';
+  Button,
+  View,
+  Text,
+  SafeAreaView,
+  FlatList,
+  StyleSheet,
+  Pressable,
+  Alert,
+} from 'react-native';
+import {InstalledApps} from 'react-native-launcher-kit';
+import Geolocation from '@react-native-community/geolocation';
+import {getResources} from '../services/Resources';
+import {
+  getBrand,
+  getFirstInstallTime,
+  getUniqueId,
+  isEmulator,
+  isPinOrFingerprintSet,
+} from 'react-native-device-info';
 
-import { applicationStore } from '../store/applicationStore';
-import { Resource } from '../types/Resource';
+import {applicationStore} from '../store/applicationStore';
+import {Resource} from '../types/Resource';
+import {
+  AccessRequest,
+  CurrentLocation,
+  CurrentLocationCoords,
+  DeviceInfo,
+  InstalledApp,
+} from '../types/AccessRequestTypes';
+import {postAccessRequest} from '../services/AccessRequest';
 
-const BleManagerModule = NativeModules.BleManager;
-const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
-
-const SERVICE_UUIDS: string[] = [];
-const SECONDS_TO_SCAN = 3;
-const ALLOW_DUPLICATES = true;
-
-const HomeScreen = ({ navigation }) => {
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [requestedInfo, setRequestedInfo] = useState('');
-  const [locationGranted, setLocationGranted] = useState('');
-  const [bleDevices, setBleDevices] = useState(new Map<Peripheral['id'], Peripheral>());
-  const [resources, setResources] = useState<Resource[]>([]);
-
-  const [isGettingResources, setIsGettingResources] = useState(false);
-  const [isLoadingDeviceInfo, setIsLoadingDeviceInfo] = useState(false);
-  const [isLoadingApInfo, setIsLoadingApInfo] = useState(false);
-  const [isLoadingDeviceNetworkInfo, setIsLoadingDeviceNetworkInfo] = useState(false);
-  const [isScanningBleDevices, setIsScanningBleDevices] = useState(false);
-  const [isGettingInstalledApps, setIsGettingInstalledApps] = useState(false);
-  const [isGettingCurrentLocation, setIsGettingCurrentLocation] = useState(false);
-
-  const [{ x, y, z }, setAccelData] = useState({ x: 0, y: 0, z: 0 });
-  const [accelSubscription, setAccelSubscription] = useState(null);
-  const _accelSlow = () => Accelerometer.setUpdateInterval(1000);
-  const _accelFast = () => Accelerometer.setUpdateInterval(16);
-  const _accelSubscribe = () => {
-    setAccelSubscription(Accelerometer.addListener(setAccelData));
-  }
-  const _accelUnsubscribe = () => {
-    accelSubscription && accelSubscription.remove();
-    setAccelSubscription(null);
-  }
-  useEffect(() => {
-    _accelSubscribe();
-    return () => _accelUnsubscribe();
-  }, []);
-
-  console.log(`X: ${x}, Y: ${y}, Z: ${z}`);
-
+const HomeScreen = ({navigation}) => {
   const bssids = applicationStore.useState(s => s.desiredBSSIDs);
   const token = applicationStore.useState(s => s.userToken);
+
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [installedApps, setInstalledApps] = useState<InstalledApp[]>();
+  const [currentLocationCoords, setCurrentLocationCoords] = useState<CurrentLocationCoords>();
+  const [currentLocation, setCurrentLocation] = useState<CurrentLocation>();
+  const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>();
+  const [isGettingResources, setIsGettingResources] = useState(false);
+  const [isSendingAccessRequest, setIsSendingAccessRequest] = useState(false);
+
+  const getInstalledApps = useCallback(() => {
+    const allInstalledApps = InstalledApps.getSortedApps();
+    const apps = allInstalledApps.map(ia => ({packageName: ia.packageName}));
+    setInstalledApps(apps);
+  }, [installedApps]);
+
+  const getCurrentLocation = useCallback(() => {
+    Geolocation.getCurrentPosition(locationInfo => {
+      const lat = locationInfo.coords.latitude;
+      const lon = locationInfo.coords.longitude;
+      const mocked = locationInfo.mocked;
+      setCurrentLocationCoords({latitude: lat, longitude: lon});
+      setCurrentLocation(mocked);
+    });
+  }, [currentLocationCoords]);
+
+  const getDeviceInfo = useCallback(async () => {
+    const uniqueId = await getUniqueId();
+    const pinOrFingerprintSet = await isPinOrFingerprintSet();
+    const emulator = await isEmulator();
+    const brand = getBrand();
+    const firstInstallTime = await getFirstInstallTime();
+
+    setDeviceInfo({uniqueId, pinOrFingerprintSet, emulator, brand, firstInstallTime});
+  }, [deviceInfo]);
 
   const getAvailableResources = useCallback(async () => {
     setIsGettingResources(true);
@@ -84,201 +86,84 @@ const HomeScreen = ({ navigation }) => {
     setResources(availableResources.resources);
   }, [resources]);
 
-  useEffect(() => {
-    if (resources.length === 0) getAvailableResources();
-  }, [resources])
-
-  useEffect(() => {
-    /**
-     * required for reading list of APs
-     */
-    PermissionsAndroid.requestMultiple([
-      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-      PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION,
-      PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
-      PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE,
-      PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-    ]).then(result => {
-      if (result['android.permission.ACCESS_FINE_LOCATION'] &&
-        result['android.permission.ACCESS_BACKGROUND_LOCATION'] &&
-        result['android.permission.BLUETOOTH_SCAN'] &&
-        result['android.permission.BLUETOOTH_ADVERTISE'] &&
-        result['android.permission.BLUETOOTH_CONNECT'] === 'granted') {
-        setLocationGranted('ALLOW');
-      }
-    }).catch(err => {
-      console.log(err)
-    });
-  }, [locationGranted]);
-
-  const addOrUpdateBleDevice = (id: string, updatedBleDevice: Peripheral) => {
-    setBleDevices(map => new Map(map.set(id, updatedBleDevice)))
-  };
-
-  const handleDiscoverBleDevices = (bleDevice: Peripheral) => {
-    console.log("New Ble Device", bleDevice);
-    if (!bleDevice.name) {
-      bleDevice.name = 'NO NAME';
+  const sendAccessRequest = useCallback(async (resourceId: number) => {
+    setIsSendingAccessRequest(true);
+    if (installedApps && currentLocationCoords && currentLocation !== undefined && deviceInfo) {
+      const contextualInfo: AccessRequest = {
+        ResourceID: resourceId,
+        ActionID: 1,
+        installedApps,
+        CurrentLocationCoords: currentLocationCoords,
+        DeviceInfo: deviceInfo,
+        CurrentLocation: currentLocation,
+      };
+      const accessRequestResult = await postAccessRequest(contextualInfo, token);
+      console.log(accessRequestResult);
     }
-    addOrUpdateBleDevice(bleDevice.id, bleDevice);
-  };
-
-  const handleStopScan = () => {
-    setIsScanningBleDevices(false);
-    console.log('Stopped scanning Ble devices');
-  };
-
-  useEffect(() => {
-    try {
-      BleManager.start({ showAlert: false })
-        .then(() => console.log("BleManager started"))
-        .catch(error => console.error("BleManager could not start", error))
-    } catch (error) {
-      console.error("Exception thrown when starting BleManager", error)
-      return;
-    }
-
-    const listeners = [
-      bleManagerEmitter.addListener(
-        'BleManagerDiscoverPeripheral',
-        handleDiscoverBleDevices
-      ),
-      bleManagerEmitter.addListener(
-        'BleManagerStopScan',
-        handleStopScan
-      )
-    ];
-
-    return () => {
-      for (const listener of listeners) listener.remove();
-    }
+    setIsSendingAccessRequest(false);
   }, []);
 
-  const startBleScan = () => {
-    if (!isScanningBleDevices) {
-      setBleDevices(new Map<Peripheral['id'], Peripheral>());
+  useEffect(() => {
+    if (!installedApps) getInstalledApps();
+  }, [installedApps]);
 
-      try {
-        setIsScanningBleDevices(true);
-        BleManager.scan(SERVICE_UUIDS, SECONDS_TO_SCAN, ALLOW_DUPLICATES, {
-          matchMode: BleScanMatchMode.Sticky,
-          scanMode: BleScanMode.LowLatency,
-          callbackType: BleScanCallbackType.AllMatches,
-        }).then(() => {
-          console.log("Scan promise returned successfully");
-        }).catch(err => console.error("Scan promise error", err));
-      } catch (error) {
-        console.error("Scan exception", error);
-      }
-    }
+  useEffect(() => {
+    if (!currentLocationCoords) getCurrentLocation();
+  }, [currentLocationCoords]);
+
+  useEffect(() => {
+    if (!deviceInfo) getDeviceInfo();
+  }, [deviceInfo]);
+
+  useEffect(() => {
+    if (resources && resources.length === 0) getAvailableResources();
+  }, [resources]);
+
+  const handleItemPress = (resourceId: number) => {
+    sendAccessRequest(resourceId);
   };
-
-  const getDeviceInfo = useCallback(() => {
-    setIsLoadingDeviceInfo(true);
-    const syncDeviceInfo = getSyncDeviceInfo();
-    getAsyncDeviceInfo().then(result => {
-      const asyncDeviceInfo = {
-        'availableApplicationProviders': result[0],
-        'buildId': result[1],
-        'batteryLevel': result[2],
-        'carrier': result[3],
-        'deviceName': result[4],
-        'firstInstallTime': result[5],
-        'fontScale': result[6],
-        'freeDiskStorage': result[7],
-        'installerPackageName': result[8],
-        'macAddress': result[9],
-        'manufacturer': result[10],
-        'powerState': result[11],
-        'totalDiskCapacity': result[12],
-        'totalMemory': result[13],
-        'uniqueId': result[14],
-        'usedMemory': result[15],
-        'userAgent': result[16],
-        'batteryCharging': result[17],
-        'emulator': result[18],
-        'landscape': result[19],
-        'locationEnabled': result[20],
-        'headphonesConnected': result[21],
-        'pinOrFingerprintSet': result[22]
-      };
-      setRequestedInfo(JSON.stringify({ ...syncDeviceInfo, ...asyncDeviceInfo }));
-      setIsModalVisible(true);
-    }).catch(error => {
-      console.error(error);
-    }).finally(() => {
-      setIsLoadingDeviceInfo(false);
-    });
-  }, [requestedInfo]);
-
-  const getApInfo = useCallback(() => {
-    setIsLoadingApInfo(true);
-    WifiManager.reScanAndLoadWifiList().then(result => {
-      setRequestedInfo(JSON.stringify(result));
-    }).catch(error => {
-      console.error(error);
-    }).finally(() => {
-      setIsLoadingApInfo(false);
-      setIsModalVisible(true);
-    });
-  }, [requestedInfo]);
-
-  const getDeviceNetworkInfo = useCallback(() => {
-    setIsLoadingDeviceNetworkInfo(true);
-    NetInfo.fetch().then(result => {
-      setRequestedInfo(JSON.stringify(result));
-    }).finally(() => {
-      setIsLoadingDeviceNetworkInfo(false);
-      setIsModalVisible(true);
-    });
-  }, [requestedInfo]);
-
-  const getInstalledApps = useCallback(() => {
-    setIsGettingInstalledApps(true);
-    const allInstalledApps = InstalledApps.getSortedApps();
-    const installedApps = allInstalledApps.map(ia => ({ 'packageName': ia.packageName, 'appName': ia.label }))
-    setRequestedInfo(JSON.stringify(installedApps));
-    setIsGettingInstalledApps(false);
-    setIsModalVisible(true);
-  }, [requestedInfo]);
-
-  const getCurrentLocation = useCallback(() => {
-    setIsGettingCurrentLocation(true);
-    Geolocation.getCurrentPosition(info => {
-      setRequestedInfo(JSON.stringify(info));
-      setIsGettingCurrentLocation(false);
-      setIsModalVisible(true);
-    });
-  }, [requestedInfo]);
-
-  const handleItemPress = () => {
-    console.log("Item pressed");
-  }
 
   const handleLogout = () => {
     applicationStore.update(applicationState => {
       applicationState.userToken = undefined;
     });
-  }
+  };
 
   return (
     <SafeAreaView style={styles.safeAreaViewContainer}>
       {isGettingResources ? (
         <>
-          <View><Text>Loading Resources</Text></View>
+          <View>
+            <Text>Loading Resources</Text>
+          </View>
         </>
       ) : (
         <>
           <View style={styles.documentListContainer}>
-            <FlatList data={resources} renderItem={({ item }) => (
-              <Pressable style={({ pressed }) => pressed ? styles.documentItemContainerPressed : styles.documentItemContainer} onPress={handleItemPress} >
-                <Text style={{ fontSize: 20 }}>{item.resourceName}</Text>
-                <Text>{item.resourceID}</Text>
-              </Pressable>
-            )} />
+            <FlatList
+              data={resources}
+              renderItem={({item}) => (
+                <Pressable
+                  style={({pressed}) =>
+                    pressed ? styles.documentItemContainerPressed : styles.documentItemContainer
+                  }
+                  onPress={() => handleItemPress(item.resourceID)}>
+                  <Text style={{fontSize: 20}}>{item.resourceName}</Text>
+                  <Text>{item.resourceID}</Text>
+                </Pressable>
+              )}
+            />
           </View>
           <View style={styles.logoutView}>
-            <Button title="Logout" onPress={() => Alert.alert('Logout', 'Are you readdy to logout?', [{ text: 'No', style: 'default' }, { text: 'Yes', style: 'destructive', onPress: handleLogout }])} />
+            <Button
+              title="Logout"
+              onPress={() =>
+                Alert.alert('Logout', 'Confirm logout?', [
+                  {text: 'No', style: 'default'},
+                  {text: 'Yes', style: 'destructive', onPress: handleLogout},
+                ])
+              }
+            />
           </View>
         </>
       )}
@@ -293,24 +178,24 @@ const styles = StyleSheet.create({
   },
   documentListContainer: {
     flex: 1,
-    flexDirection: "column",
+    flexDirection: 'column',
   },
   documentItemContainer: {
     flex: 1,
-    backgroundColor: "#dedede",
+    backgroundColor: '#dedede',
     padding: 10,
-    margin: 5
+    margin: 5,
   },
   documentItemContainerPressed: {
     flex: 1,
-    backgroundColor: "#dedede",
+    backgroundColor: '#dedede',
     padding: 10,
     margin: 5,
-    opacity: 0.5
+    opacity: 0.5,
   },
   logoutView: {
     flex: 0,
-  }
+  },
 });
 
 export default HomeScreen;
