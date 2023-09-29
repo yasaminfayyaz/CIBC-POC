@@ -5,10 +5,10 @@ This script is used to push a XACML policy to the AuthzForce PDP.
 
 # Define the AuthzForce details
 domain_id = "A0bdIbmGEeWhFwcKrC9gSQ"
-host = "ec2-3-145-63-120.us-east-2.compute.amazonaws.com"
+#TODO: TBD host =
 port = 8080
 # Define the file path to the XACML policy
-file_path = "C:\\Users\\yasmi\\Documents\\GitHub\\CIBC-POC\\Code\\XACML Policy\\src-gen\\CIBC.cibc2023.xml"
+file_path = "Digital Policy/src-gen/CIBC.root.xml"
 
 # Read the XACML policy from the file
 with open(file_path, 'r', encoding='utf-8') as file:
