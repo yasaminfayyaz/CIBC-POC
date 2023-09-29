@@ -12,7 +12,7 @@ from pyxacml_sdk.model.datatypes import Datatype
 from DB_Operations import Database
 
 # Relative path to configuration file
-config_file_path = "/home/Yafa/CIBC-POC/Code/config.yml"
+config_file_path = "config.yml"
 
 # Domain ID
 domain_id = "A0bdIbmGEeWhFwcKrC9gSQ"

@@ -2,7 +2,7 @@
 This file contains the configuration for the PDP.
 """
 pdp:
-    host: "ec2-3-145-63-120.us-east-2.compute.amazonaws.com"
+    host: "TBD"
     port: 8080
     endpoint: "authzforce-ce-server"
     ssl_verify: False
