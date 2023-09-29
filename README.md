@@ -29,11 +29,11 @@ Provides utility functions used by PEP to enhance the dynamic attributes. One fu
 ### Code/PAP.py
 The PAP.py script serves as the Policy Administration Point (PAP) in the framework. Its primary role is to load XACML policies into the Policy Decision Point (PDP).
 
-### Code/trustEngine.py
-The Trust Engine is responsible for dynamically calculating an employee's trustworthiness based on various attributes. It employs a quadruple system to represent belief, disbelief, uncertainty, and base rate for each attribute. These quadruples are then used to compute a trust score through a fusion formula. The trust score is subsequently thresholded to determine the entity's clearance level.
-
 ### Code/config.yaml
 This file configures the Policy Decision Point (PDP) by specifying host, port, and endpoint details.
+
+### Code/trustEngine.py
+The Trust Engine is responsible for dynamically calculating an employee's trustworthiness based on various attributes. It employs a quadruple system to represent belief, disbelief, uncertainty, and base rate for each attribute. These quadruples are then used to compute a trust score through a fusion formula. The trust score is subsequently thresholded to determine the entity's clearance level.
 
 ### PIP Directory
 The directory contains several key elements related to the MySQL Policy Information Point (PIP). It includes Data Definition Language scripts for database structure. There are also image files depicting the Entity-Relationship (ER) diagrams for various databases in addition to their current data.
