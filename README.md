@@ -39,7 +39,7 @@ The Trust Engine is responsible for dynamically calculating an employee's trustw
 The PAP.py script serves as the Policy Administration Point (PAP) in the framework. Its primary role is to load XACML policies into the Policy Decision Point (PDP).
 
 #### PAP/Digital Policy
-Contains the ALFA policy, which has been auto-compiled into XACML format. This XACML policy must then be pushed to the PDP via the PAP.py.
+Contains the ALFA policy, which has been auto-compiled into XACML format using [ALFA extension for VSCode](https://marketplace.visualstudio.com/items?itemName=Axiomatics.alfa). This XACML policy must then be pushed to the PDP via the PAP.py.
 
 
 ### PIP Directory
