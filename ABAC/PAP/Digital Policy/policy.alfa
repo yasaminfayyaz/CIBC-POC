@@ -1,0 +1,176 @@
+namespace CIBC {
+    // Attribute declarations
+    attribute INSTALLED_APPS_SAFE {
+        id = "urn:custom:device:installed-apps-safe"
+        type = boolean
+        category = subjectCat
+    }
+    attribute LOCATION_TRUSTED {
+        id = "urn:custom:device:location:location-trusted"
+        type = boolean
+        category = subjectCat
+    }
+    attribute DEVICE_REGISTERED {
+        id = "urn:custom:device:device-registered"
+        type = boolean
+        category = subjectCat
+    }
+    attribute DEVICE_REDFLAGS {
+        id = "urn:custom:device:redflags"
+        type = boolean
+        category = subjectCat
+    }
+    attribute WORK_HOURS {
+        id = "urn:custom:environment:work-hours"
+        type = boolean
+        category = subjectCat
+    }
+    attribute SUFFICIENT_CLEARANCE {
+        id = "urn:custom:employee:sufficient-clearance"
+        type = boolean
+        category = subjectCat
+    }
+    attribute SUFFICIENT_CLEARANCE_EXISTS {
+        id = "urn:custom:employee:sufficient-clearance-exists"
+        type = boolean
+        category = subjectCat
+    }
+    attribute AT_PRIMARY_BRANCH {
+        id = "urn:custom:employee:at-primary-branch"
+        type = boolean
+        category = subjectCat
+    }
+    attribute  EMPLOYEE_DEPARTMENT {
+        id = "urn:custom:employee:department"
+        type = string
+        category = subjectCat
+    }
+    attribute  EMPLOYEE_INIT_CLEARANCE {
+        id = "urn:custom:employee:initial-clearance"
+        type = integer
+        category = subjectCat
+    }
+    attribute  EMPLOYEE_CURRENT_CLEARANCE {
+        id = "urn:custom:employee:current-clearance"
+        type = integer
+        category = subjectCat
+    }
+    attribute  RESOURCE_DEPARTMENT {
+        id = "urn:custom:resource:department"
+        type = string
+        category = resourceCat
+    }
+
+    attribute  RESOURCE_SEC_LEVEL {
+        id = "urn:custom:resource:security-level"
+        type = integer
+        category = resourceCat
+    }
+    
+    policyset root {
+        apply firstApplicable
+        // Main policy for resource access
+        policy resourceAccess {
+            apply denyUnlessPermit
+
+            // Rule for Top Secret resources
+            // Access only within work hours
+            // Device must be registered
+            // Device must not have red flags
+            // Device must be at trusted location
+            // Employee must have sufficient clearance
+            // Employee must be at primary branch
+            // Employee must be in the same department as the resource
+            // Employee must have sufficient clearance
+            rule topSecret {
+                permit
+                target clause RESOURCE_SEC_LEVEL[mustbepresent] == 5 
+                condition INSTALLED_APPS_SAFE[mustbepresent] == true
+                    && LOCATION_TRUSTED[mustbepresent] == true
+                    && DEVICE_REGISTERED[mustbepresent] == true
+                    && DEVICE_REDFLAGS[mustbepresent] == false
+                    && WORK_HOURS[mustbepresent] == true
+                    && (SUFFICIENT_CLEARANCE == true || SUFFICIENT_CLEARANCE_EXISTS == false)
+                    && AT_PRIMARY_BRANCH[mustbepresent] == true
+                    && EMPLOYEE_DEPARTMENT[mustbepresent] == RESOURCE_DEPARTMENT[mustbepresent]
+                    && EMPLOYEE_CURRENT_CLEARANCE[mustbepresent] >= RESOURCE_SEC_LEVEL[mustbepresent]
+            }
+            // Rule for Secret resources - Read
+            // Access not necessarily within work hours
+            rule SecretRead {
+                permit
+                target clause RESOURCE_SEC_LEVEL[mustbepresent] == 4 and Attributes.actionId == "read"
+                condition INSTALLED_APPS_SAFE[mustbepresent] == true
+                    && LOCATION_TRUSTED[mustbepresent] == true
+                    && DEVICE_REGISTERED[mustbepresent] == true
+                    && DEVICE_REDFLAGS[mustbepresent] == false
+                    && (SUFFICIENT_CLEARANCE == true || SUFFICIENT_CLEARANCE_EXISTS == false)
+                    && AT_PRIMARY_BRANCH[mustbepresent] == true
+                    && EMPLOYEE_DEPARTMENT[mustbepresent] == RESOURCE_DEPARTMENT[mustbepresent]
+                    && EMPLOYEE_CURRENT_CLEARANCE[mustbepresent] >= RESOURCE_SEC_LEVEL[mustbepresent]
+            }
+            
+            // Rule for Secret resources - other actions
+            // Access not necessarily within work hours
+            // Don't care about clearance of those around
+            rule Secret {
+                permit
+                target clause RESOURCE_SEC_LEVEL[mustbepresent] == 4 
+                clause Attributes.actionId == "write" or Attributes.actionId == "delete"
+                condition INSTALLED_APPS_SAFE[mustbepresent] == true
+                    && LOCATION_TRUSTED[mustbepresent] == true
+                    && DEVICE_REGISTERED[mustbepresent] == true
+                    && DEVICE_REDFLAGS[mustbepresent] == false
+                    && AT_PRIMARY_BRANCH[mustbepresent] == true
+                    && EMPLOYEE_DEPARTMENT[mustbepresent] == RESOURCE_DEPARTMENT[mustbepresent]
+                    && EMPLOYEE_CURRENT_CLEARANCE[mustbepresent] >= RESOURCE_SEC_LEVEL[mustbepresent]
+            }
+            
+
+            // Rule for Confidential resources
+            // Access not necessarily within work hours
+            // Don't need to be at primary branch
+            // Don't need to be at trusted location
+            // Don't care about clearance of those around
+            rule Confidential {
+                permit
+                target clause RESOURCE_SEC_LEVEL[mustbepresent] == 3
+                condition INSTALLED_APPS_SAFE[mustbepresent] == true
+                    && DEVICE_REGISTERED[mustbepresent] == true
+                    && DEVICE_REDFLAGS[mustbepresent] == false
+                    && EMPLOYEE_DEPARTMENT[mustbepresent] == RESOURCE_DEPARTMENT[mustbepresent]
+                    && (EMPLOYEE_CURRENT_CLEARANCE[mustbepresent] >= RESOURCE_SEC_LEVEL[mustbepresent] || EMPLOYEE_INIT_CLEARANCE[mustbepresent] == 5)
+            }
+            // Rule for Restricted resources
+            // Access not necessarily within work hours
+            // Don't need to be at primary branch
+            // Don't need to be at trusted location
+            // Don't care about clearance of those around
+            // Device doesn't need to be registered
+            rule Restricted {
+                permit
+                target clause RESOURCE_SEC_LEVEL[mustbepresent] == 2
+                condition INSTALLED_APPS_SAFE[mustbepresent] == true
+                    && DEVICE_REDFLAGS[mustbepresent] == false
+                    && EMPLOYEE_DEPARTMENT[mustbepresent] == RESOURCE_DEPARTMENT[mustbepresent]
+                    && (EMPLOYEE_CURRENT_CLEARANCE[mustbepresent] >= RESOURCE_SEC_LEVEL[mustbepresent] || EMPLOYEE_INIT_CLEARANCE[mustbepresent] >= 4)
+            }
+
+            // Rule for Unclassiffied resources
+            // Access not necessarily within work hours
+            // Don't need to be at primary branch
+            // Don't need to be at trusted location
+            // Don't care about clearance of those around
+            // Device doesn't need to be registered
+            // Department doesn't need to match
+            //Don't care about clearance
+            rule Unclassiffied {
+                permit
+                target clause RESOURCE_SEC_LEVEL[mustbepresent] == 1
+                condition INSTALLED_APPS_SAFE[mustbepresent] == true
+                    && DEVICE_REDFLAGS[mustbepresent] == false
+            }
+
+        }
+    }
+}
