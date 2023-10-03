@@ -21,12 +21,14 @@ export const login = async (username: string, password: string): Promise<APIResp
 
   if (response.ok) {
     const responseBody = await response.json();
-    return responseBody;
+    return {...responseBody, httpStatusCode: response.status, ok: response.ok};
   }
 
   return {
     code: response.status,
     message: 'Could not sign in',
+    httpStatusCode: response.status,
+    ok: response.ok,
   };
 };
 
