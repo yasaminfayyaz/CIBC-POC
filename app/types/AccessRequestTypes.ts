@@ -1,29 +1,29 @@
 export interface InstalledApp {
-    packageName: string;
+  packageName: string;
 }
 
 export interface CurrentLocationCoords {
-    latitude: number;
-    longitude: number;
+  latitude: number;
+  longitude: number;
 }
 
 export interface CurrentLocation {
-    mocked: boolean;
+  mocked: boolean;
 }
 
 export interface DeviceInfo {
-    uniqueId: string;
-    pinOrFingerprintSet: boolean;
-    emulator: boolean;
-    brand: string;
-    firstInstallTime: number;
+  uniqueId: string;
+  pinOrFingerprintSet: boolean;
+  emulator: boolean;
+  brand: string;
+  firstInstallTime: number;
 }
 
 export interface AccessRequest {
-    ResourceID: number;
-    ActionID: number;
-    installedApps: InstalledApp[];
-    CurrentLocationCoords: CurrentLocationCoords;
-    DeviceInfo: DeviceInfo;
-    CurrentLocation: CurrentLocation;
+  ResourceID: number;
+  ActionID: string;
+  installedApps: InstalledApp[];
+  CurrentLocationCoords: CurrentLocationCoords;
+  DeviceInfo: DeviceInfo;
+  CurrentLocation: CurrentLocation;
 }
