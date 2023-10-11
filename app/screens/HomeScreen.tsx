@@ -54,29 +54,34 @@ const HomeScreen = ({navigation}) => {
   const [isSendingAccessRequest, setIsSendingAccessRequest] = useState(false);
 
   const getInstalledApps = useCallback(() => {
-    const allInstalledApps = InstalledApps.getSortedApps();
-    const apps = allInstalledApps.map(ia => ({packageName: ia.packageName}));
-    setInstalledApps(apps);
+    if (installedApps === undefined) {
+      const allInstalledApps = InstalledApps.getSortedApps();
+      const apps = allInstalledApps.map(ia => ({packageName: ia.packageName}));
+      setInstalledApps(apps);
+    }
   }, [installedApps]);
 
   const getCurrentLocation = useCallback(() => {
-    Geolocation.getCurrentPosition(locationInfo => {
-      const lat = locationInfo.coords.latitude;
-      const lon = locationInfo.coords.longitude;
-      const mocked = locationInfo.mocked;
-      setCurrentLocationCoords({latitude: lat, longitude: lon});
-      setCurrentLocation(mocked);
-    });
+    if (currentLocationCoords === undefined || currentLocation === undefined) {
+      Geolocation.getCurrentPosition(locationInfo => {
+        const lat = locationInfo.coords.latitude;
+        const lon = locationInfo.coords.longitude;
+        const mocked = locationInfo.mocked;
+        setCurrentLocationCoords({latitude: lat, longitude: lon});
+        setCurrentLocation(mocked);
+      });
+    }
   }, [currentLocationCoords]);
 
   const getDeviceInfo = useCallback(async () => {
-    const uniqueId = await getUniqueId();
-    const pinOrFingerprintSet = await isPinOrFingerprintSet();
-    const emulator = await isEmulator();
-    const brand = getBrand();
-    const firstInstallTime = await getFirstInstallTime();
-
-    setDeviceInfo({uniqueId, pinOrFingerprintSet, emulator, brand, firstInstallTime});
+    if (deviceInfo === undefined) {
+      const uniqueId = await getUniqueId();
+      const pinOrFingerprintSet = await isPinOrFingerprintSet();
+      const emulator = await isEmulator();
+      const brand = getBrand();
+      const firstInstallTime = await getFirstInstallTime();
+      setDeviceInfo({uniqueId, pinOrFingerprintSet, emulator, brand, firstInstallTime});
+    }
   }, [deviceInfo]);
 
   const getAvailableResources = useCallback(async () => {
@@ -86,41 +91,49 @@ const HomeScreen = ({navigation}) => {
     setResources(availableResources.resources);
   }, [resources]);
 
-  const sendAccessRequest = useCallback(async (resourceId: number) => {
-    setIsSendingAccessRequest(true);
-    if (installedApps && currentLocationCoords && currentLocation !== undefined && deviceInfo) {
-      const contextualInfo: AccessRequest = {
-        ResourceID: resourceId,
-        ActionID: 1,
-        installedApps,
-        CurrentLocationCoords: currentLocationCoords,
-        DeviceInfo: deviceInfo,
-        CurrentLocation: currentLocation,
-      };
-      const accessRequestResult = await postAccessRequest(contextualInfo, token);
-      console.log(accessRequestResult);
-    }
-    setIsSendingAccessRequest(false);
+  const sendAccessRequest = useCallback(
+    async (resourceId: number, actionID: string) => {
+      setIsSendingAccessRequest(true);
+      if (installedApps && currentLocationCoords && currentLocation !== undefined && deviceInfo) {
+        const contextualInfo: AccessRequest = {
+          ResourceID: resourceId,
+          ActionID: actionID,
+          installedApps,
+          CurrentLocationCoords: currentLocationCoords,
+          DeviceInfo: deviceInfo,
+          CurrentLocation: currentLocation,
+        };
+        const accessRequestResult = await postAccessRequest(contextualInfo, token);
+        Alert.alert(`Code: ${accessRequestResult.code}`, accessRequestResult.message, [
+          {text: 'Ok'},
+        ]);
+      }
+      setIsSendingAccessRequest(false);
+    },
+    [installedApps, currentLocationCoords, currentLocation, deviceInfo],
+  );
+
+  useEffect(() => {
+    getInstalledApps();
+    getCurrentLocation();
+    getDeviceInfo();
   }, []);
-
-  useEffect(() => {
-    if (!installedApps) getInstalledApps();
-  }, [installedApps]);
-
-  useEffect(() => {
-    if (!currentLocationCoords) getCurrentLocation();
-  }, [currentLocationCoords]);
-
-  useEffect(() => {
-    if (!deviceInfo) getDeviceInfo();
-  }, [deviceInfo]);
 
   useEffect(() => {
     if (resources && resources.length === 0) getAvailableResources();
   }, [resources]);
 
-  const handleItemPress = (resourceId: number) => {
-    sendAccessRequest(resourceId);
+  const handleItemPress = (resource: Resource) => {
+    Alert.alert('Choose action', 'What type of access request are you performing? ', [
+      {
+        text: 'Read',
+        onPress: () => sendAccessRequest(resource.resourceID, 'read'),
+      },
+      {
+        text: 'Write',
+        onPress: () => sendAccessRequest(resource.resourceID, 'write'),
+      },
+    ]);
   };
 
   const handleLogout = () => {
@@ -147,7 +160,7 @@ const HomeScreen = ({navigation}) => {
                   style={({pressed}) =>
                     pressed ? styles.documentItemContainerPressed : styles.documentItemContainer
                   }
-                  onPress={() => handleItemPress(item.resourceID)}>
+                  onPress={() => handleItemPress(item)}>
                   <Text style={{fontSize: 20}}>{item.resourceName}</Text>
                   <Text>{item.resourceID}</Text>
                 </Pressable>
