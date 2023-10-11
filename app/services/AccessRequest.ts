@@ -20,10 +20,8 @@ export const postAccessRequest = async (
     method: 'POST',
     body: JSON.stringify({...contextualInfo}),
   });
-  console.log(response);
 
   const responseBody = await response.json();
-  console.log(responseBody);
 
   return responseBody;
 };
